@@ -23,34 +23,42 @@ Record MemoryDescriptor := MemDesc {
   starting_address : nat;
   code_size : nat;
   data_size : nat;
-  entry_points: nat
+  no_entrypoints: nat
 }.
 
-Definition last_address (m : MemoryDescriptor) : Address :=
-   starting_address m + code_size m + data_size m.
+Definition last_address (s : MemoryDescriptor) : Address :=
+   starting_address s + code_size s + data_size s.
 
 
 Inductive protected : MemoryDescriptor -> Address -> Prop :=
-  Prot : forall (m : MemoryDescriptor) (p : Address), 
-    starting_address m <= p -> p < last_address m -> protected m p.
+  Prot : forall (s : MemoryDescriptor) (p : Address), 
+    starting_address s <= p -> p < last_address s -> protected s p.
 
 Inductive unprotected : MemoryDescriptor -> Address -> Prop :=
-  Unprot_before : forall (m : MemoryDescriptor) (p : Address), 
-    p < starting_address m -> unprotected m p
-| Unprot_after :  forall (m : MemoryDescriptor) (p : Address), 
-  last_address m <= p -> unprotected m p.
+  Unprot_before : forall (s : MemoryDescriptor) (p : Address), 
+    p < starting_address s -> unprotected s p
+| Unprot_after :  forall (s : MemoryDescriptor) (p : Address), 
+  last_address s <= p -> unprotected s p.
 
 Lemma protected_unprotected_disjoint :
-  forall (m : MemoryDescriptor) (p : Address), not (protected m p /\ unprotected m p).
+  forall (s : MemoryDescriptor) (p : Address), not (protected s p /\ unprotected s p).
 Proof.
-  intros m p.
+  intros s p.
   intro.
   decompose [and] H.
   inversion H0.
   inversion H1 ; apply (lt_irrefl p); omega.
 Qed.
 
+Parameter entrypoint_size : nat.
+Axiom non_zero_entrypoint_size : entrypoint_size > 0.
 
+
+Definition entrypoint (s : MemoryDescriptor) (p : Address) : Prop :=
+  exists (m : nat), m < no_entrypoints s /\ p = starting_address s + m * entrypoint_size.  
+
+Definition data_segment (s : MemoryDescriptor) (p : Address) : Prop :=
+  starting_address s + code_size s <= p /\ p < last_address s.
 
 
   
