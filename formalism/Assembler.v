@@ -105,10 +105,6 @@ Parameter updateR : RegisterFile -> Register -> Value -> RegisterFile.
 
 Definition Flags := Flag -> Bit. 
 
-Open Scope type_scope.
-Definition State := Memory * RegisterFile * Flags.
-Close Scope type_scope.
-
 Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
   stack_out_to_in : forall (p p' : Address) (m m': Memory) (r r': RegisterFile),
   entry_jump p p' -> m' = store m SPext (r SP) -> r' = updateR r SP (lookup m SPsec) -> set_stack p r m p' r' m'
@@ -118,4 +114,23 @@ Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFi
   same_jump p p' -> set_stack p r m p' r m.
 
   
+Open Scope type_scope.
+Definition State := Address * RegisterFile * Flags * Memory.
+Close Scope type_scope.
 
+Reserved Notation "S '-->' S'" (at level 50, left associativity).
+
+Parameter inst : Memory -> Address -> Instruction -> Prop.
+(* TODO : Some axiom stating that each decoded value is unique. *)
+
+Inductive evalR : State -> State -> Prop :=
+  eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd rs : Register),
+    inst m p (movl rd rs) -> 
+    valid_jump p (S p) ->
+    read_allowed p (lookup m (r rd)) -> 
+    r' = updateR r rs (lookup m (r rs)) ->  
+    (p, r, f, m) --> (S p, r', f, m)
+
+(* TODO: Add other instructions *)
+
+where "S '-->' S'" := (evalR S S') : type_scope.
