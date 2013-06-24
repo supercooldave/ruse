@@ -45,6 +45,8 @@ Record MemoryDescriptor := MemDesc {
 Parameter s : MemoryDescriptor.
 
 Definition starting_address := starting_address_ s.
+Axiom non_zero_starting_address : starting_address > 0.
+
 Definition code_size := code_size_ s.
 Definition data_size := data_size_ s.
 Definition no_entrypoints := no_entrypoints_ s.
@@ -52,21 +54,23 @@ Definition no_entrypoints := no_entrypoints_ s.
 Definition last_address : Address := starting_address + code_size + data_size.
 
 
-Inductive protected :Address -> Prop :=
-  Prot : forall (p : Address), starting_address <= p -> p < last_address -> protected p.
+Definition protected (p : Address) : Prop := starting_address <= p -> p < last_address. 
 
-Inductive unprotected :Address -> Prop :=
-  Unprot_before : forall (p : Address), p < starting_address -> unprotected p
-| Unprot_after :  forall (p : Address), last_address <= p -> unprotected p.
+Definition unprotected (p : Address) : Prop :=
+  (p > 0 /\ p < starting_address) \/ last_address <= p.
 
 Lemma protected_unprotected_disjoint :
-  forall (p : Address), not (protected p /\ unprotected p).
+  forall (p : Address), { p = 0 } + { protected p } + { unprotected p }.
 Proof.
-  intros p H.
-  decompose [and] H.
-  inversion H0.
-  inversion H1 ; apply (lt_irrefl p); omega.
-Qed.
+  intros p.
+  case p.
+    left.
+    left.
+    auto.
+
+    intro.
+
+Admitted.
 
 Parameter entrypoint_size : nat.
 Axiom non_zero_entrypoint_size : entrypoint_size > 0.
@@ -110,7 +114,7 @@ Parameter Memory : Set.
 Parameter lookup : Memory -> Address -> Value.
 Parameter store : Memory -> Address -> Value -> Memory.
 
-Definition RegisterFile := Register -> nat.
+Definition RegisterFile := Register -> Value.
 (*
 Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
   fun (reg' : Register) => if (reg = reg') then v else r reg.
@@ -135,56 +139,54 @@ Close Scope type_scope.
 
 Reserved Notation "S '--->' S'" (at level 50, left associativity).
 
-Parameter inst : Memory -> Address -> Instruction -> Prop.
+Parameter inst : Value -> Instruction -> Prop.
 (* TODO : Some axiom stating that each decoded value is unique. *)
 
 Inductive evalR : State -> State -> Prop :=
   eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd rs : Register),
-    inst m p (movl rd rs) -> 
-    valid_jump p (S p) ->
+    inst (lookup m p) (movl rd rs) -> 
+    same_jump p (S p) ->
     read_allowed p (lookup m (r rs)) -> 
     r' = updateR r rd (lookup m (r rs)) ->  
     (p, r, f, m) ---> (S p, r', f, m)
 
 | eval_movs : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
-    inst m p (movs rd rs) -> 
-    valid_jump p (S p) ->
+    inst (lookup m p) (movs rd rs) -> 
+    same_jump p (S p) ->
     write_allowed p (lookup m (r rd)) -> 
     m' = store m (lookup m (r rs)) (r rd) ->  
     (p, r, f, m) ---> (S p, r, f, m')
 
 | eval_movi : forall (p : Address) (i : Value) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd : Register),
-    inst m p (movi rd i) -> 
-    valid_jump p (S p) ->
+    inst (lookup m p) (movi rd i) -> 
+    same_jump p (S p) ->
     r' = updateR r rd i ->  
     (p, r, f, m) ---> (S p, r', f, m)
 
 | eval_compare : forall (p : Address) (r : RegisterFile) (f f' : Flags) (m : Memory) (r1 r2 : Register),
-    inst m p (cmp r1 r2) -> 
-    valid_jump p (S p) ->
+    inst (lookup m p) (cmp r1 r2) -> 
+    same_jump p (S p) ->
     f' = updateF (updateF f ZF (beq_nat (r r1) (r r2))) SF (blt_nat (r r1) (r r2)) ->
     (p, r, f, m) ---> (S p, r, f', m)
 
 | eval_add : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : Memory) (rd rs : Register),
-    inst m p (add_ rd rs) -> 
-    valid_jump p (S p) ->
+    inst (lookup m p) (add_ rd rs) -> 
+    same_jump p (S p) ->
     v = plus (r rd) (r rs)  ->
     r' = updateR r rd v ->
     f' = updateF f ZF (beq_nat v 0) ->
     (p, r, f, m) ---> (S p, r', f', m)
 
 | eval_sub : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : Memory) (rd rs : Register),
-    inst m p (sub_ rd rs) -> 
-    valid_jump p (S p) ->
+    inst (lookup m p) (sub_ rd rs) -> 
+    same_jump p (S p) ->
     v = minus (r rd) (r rs)  ->
     r' = updateR r rd v ->
     f' = updateF f ZF (beq_nat v 0) ->
     (p, r, f, m) ---> (S p, r', f', m)
 
-(* TODO: Add other instructions *)
-
 | eval_call : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
-    inst m p (call rd) -> 
+    inst (lookup m p) (call rd) -> 
     p' = r rd ->
     valid_jump p p' ->
     set_stack p r m p' r' m' ->
@@ -193,7 +195,7 @@ Inductive evalR : State -> State -> Prop :=
     (p, r, f, m) ---> (p', r, f, m)
 
 | eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
-    inst m p ret ->
+    inst (lookup m p)  ret ->
     p' = lookup m (r SP) ->
     valid_jump p p' ->
     set_stack p r m p' r' m' ->
@@ -201,41 +203,41 @@ Inductive evalR : State -> State -> Prop :=
     (p, r, f, m) ---> (p', r'', f, m')
 
 | eval_je_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
-    inst m p (je ri) -> 
+    inst (lookup m p) (je ri) -> 
     f ZF = true ->
     p' = r ri ->
     same_jump p p' ->
     (p, r, f, m) ---> (p', r, f, m)
 
 | eval_je_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
-    inst m p (je ri) -> 
+    inst (lookup m p) (je ri) -> 
     f ZF = false ->
     p' = S p ->
     same_jump p p' ->
     (p, r, f, m) ---> (p', r, f, m)
 
 | eval_jl_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
-    inst m p (jl ri) -> 
+    inst (lookup m p) (jl ri) -> 
     f SF = true ->
     p' = r ri ->
     same_jump p p' ->
     (p, r, f, m) ---> (p', r, f, m)
 
 | eval_jl_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
-    inst m p (jl ri) -> 
+    inst (lookup m p) (jl ri) -> 
     f SF = false ->
     p' = S p ->
     same_jump p p' ->
     (p, r, f, m) ---> (p', r, f, m)
 
-| eval_jump :  forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (rd : Register),
-    inst m p (jmp rd) -> 
+| eval_jump : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (rd : Register),
+    inst (lookup m p) (jmp rd) -> 
     p' = r rd ->
     same_jump p p' ->
     (p, r, f, m) ---> (p', r, f, m)
 
-(*
-| eval_halt  -- how to deal with -1?
-*)
+| eval_halt : forall (p : Address) (r : RegisterFile) (f : Flags) (m : Memory),
+    inst (lookup m p) halt ->
+    (p, r, f, m) ---> (0, r, f, m)
 
 where "S '--->' S'" := (evalR S S') : type_scope.
