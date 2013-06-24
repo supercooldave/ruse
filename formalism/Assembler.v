@@ -94,7 +94,7 @@ Parameter entrypoint_size : nat.
 Axiom non_zero_entrypoint_size : entrypoint_size > 0.
 
 Definition entrypoint (p : Address) : Prop :=
-  exists (m : nat), m < no_entrypoints /\ p = starting_address + m * entrypoint_size.  
+  exists m : nat, m < no_entrypoints /\ p = starting_address + m * entrypoint_size.  
 
 Definition data_segment (p : Address) : Prop :=
   starting_address + code_size <= p /\ p < last_address.
@@ -259,3 +259,68 @@ Inductive evalR : State -> State -> Prop :=
     (p, r, f, m) ---> (0, r, f, m)
 
 where "S '--->' S'" := (evalR S S') : type_scope.
+
+
+(*TODO need to define a ProtectedMemory for the trace state*) 
+  
+Open Scope type_scope.
+
+Inductive StaTr := 
+  Sta : State -> StaTr
+| Unk : Memory -> StaTr. 
+Close Scope type_scope.
+
+(* or not   lookup m p  in instruction *)
+Definition stuck_state ( p: Address ) ( m : Memory ) := p > 0.
+
+Inductive Decoration := QM | BN.  (* ? | !*)
+Inductive Gamma := 
+  Ret : RegisterFile -> Flags -> Gamma 
+| Fun : RegisterFile -> Flags -> Value -> Gamma
+| Write : Address -> Value -> Gamma.
+Inductive Visible := 
+  Tick : Visible 
+| Gam : Gamma -> Decoration -> Visible.
+Inductive Label := 
+  Tau : Label
+| Act : Visible -> Label.
+
+Reserved Notation " T '--' L '-->' T' " (at level 50, left associativity).
+
+Inductive trace : StaTr -> Label -> StaTr -> Prop :=
+  tr_intern : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
+    (p, r, f, m) ---> (p', r', f', m') ->
+    int_jump p p' ->
+    Sta (p, r, f, m) -- Tau --> Sta (p', r', f', m')
+
+| tr_internal_tick : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
+  (p, r, f, m) ---> (p', r', f', m') ->
+  stuck_state p' m' ->
+  Sta (p, r, f, m) -- Act Tick --> Sta (p', r', f', m')
+
+| tr_writeout : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd rs : Register),
+  int_jump p (S p) ->
+  inst (lookup m p ) (movs rd rs)->
+  unprotected (lookup m (r rd)) ->
+  Sta (p, r, f, m) -- Act ( Gam ( Write (r rd) (r rs) ) BN ) --> Sta ( (S p), r, f, m) 
+
+| tr_call : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
+  entrypoint p ->
+  (Unk m) -- Act ( Gam ( Fun r f p ) QM ) --> Sta (p, r, f, m)
+
+| tr_returnback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
+  return_entrypoint p ->
+  (Unk m) -- Act ( Gam ( Ret r f ) QM ) --> Sta (p, r, f, m)
+
+| tr_callback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd : Register),
+  inst (lookup m p) (call rd) ->
+  exit_jump p (lookup m (r rd)) ->
+  Sta (p, r, f, m) -- Act ( Gam ( Fun r f (lookup m (r rd)) ) BN ) --> (Unk m)
+
+| tr_return : forall (p p' : Address) (r : RegisterFile) (f: Flags) (m: Memory) (sp : Register),
+  p' = lookup m (r sp) ->
+  exit_jump p p'->
+  inst (lookup m p) (ret) ->
+  Sta (p, r, f, m) -- Act ( Gam ( Ret r f ) BN ) --> (Unk m)
+
+where "T '--' L '-->' T'" := (trace T L T') : type_scope.
