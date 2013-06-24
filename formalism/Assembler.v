@@ -2,7 +2,21 @@ Require Import Omega.
 
 Inductive Register := R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | SP.
 Inductive Flag := SF | ZF.
-Inductive Bit := O | I.
+Definition Bit := bool. 
+
+(* TODO: Find better home for these -- better still, see if they are in Coq lib. *)
+Fixpoint ble_nat (n m : nat) : bool :=
+  match n with
+  | O => true
+  | S n' =>
+      match m with
+      | O => false
+      | S m' => ble_nat n' m'
+      end
+  end.
+
+Definition blt_nat (n m : nat) : bool :=
+  if andb (ble_nat n m) (negb (beq_nat n m)) then true else false.
 
 Definition Address := nat.
 Definition Value := nat.
@@ -11,8 +25,8 @@ Inductive Instruction :=
    movl : Register -> Register -> Instruction
  | movs : Register -> Register -> Instruction
  | movi : Register -> Value    -> Instruction
- | add  : Register -> Register -> Instruction
- | sub  : Register -> Register -> Instruction
+ | add_ : Register -> Register -> Instruction
+ | sub_ : Register -> Register -> Instruction
  | cmp  : Register -> Register -> Instruction
  | jmp  : Register             -> Instruction
  | je   : Register             -> Instruction
@@ -104,6 +118,7 @@ Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFil
 Parameter updateR : RegisterFile -> Register -> Value -> RegisterFile.
 
 Definition Flags := Flag -> Bit. 
+Parameter updateF : Flags -> Flag -> Bit -> Flags.
 
 Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
   stack_out_to_in : forall (p p' : Address) (m m': Memory) (r r': RegisterFile),
@@ -118,7 +133,7 @@ Open Scope type_scope.
 Definition State := Address * RegisterFile * Flags * Memory.
 Close Scope type_scope.
 
-Reserved Notation "S '-->' S'" (at level 50, left associativity).
+Reserved Notation "S '--->' S'" (at level 50, left associativity).
 
 Parameter inst : Memory -> Address -> Instruction -> Prop.
 (* TODO : Some axiom stating that each decoded value is unique. *)
@@ -127,10 +142,46 @@ Inductive evalR : State -> State -> Prop :=
   eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd rs : Register),
     inst m p (movl rd rs) -> 
     valid_jump p (S p) ->
-    read_allowed p (lookup m (r rd)) -> 
-    r' = updateR r rs (lookup m (r rs)) ->  
-    (p, r, f, m) --> (S p, r', f, m)
+    read_allowed p (lookup m (r rs)) -> 
+    r' = updateR r rd (lookup m (r rs)) ->  
+    (p, r, f, m) ---> (S p, r', f, m)
+
+| eval_movs : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
+    inst m p (movs rd rs) -> 
+    valid_jump p (S p) ->
+    write_allowed p (lookup m (r rd)) -> 
+    m' = store m (lookup m (r rs)) (r rd) ->  
+    (p, r, f, m) ---> (S p, r, f, m')
+
+| eval_movi : forall (p : Address) (i : Value) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd : Register),
+    inst m p (movi rd i) -> 
+    valid_jump p (S p) ->
+    r' = updateR r rd i ->  
+    (p, r, f, m) ---> (S p, r', f, m)
+
+| eval_compare : forall (p : Address) (r : RegisterFile) (f f' : Flags) (m : Memory) (r1 r2 : Register),
+    inst m p (cmp r1 r2) -> 
+    valid_jump p (S p) ->
+    f' = updateF (updateF f ZF (beq_nat (r r1) (r r2))) SF (blt_nat (r r1) (r r2)) ->
+    (p, r, f, m) ---> (S p, r, f', m)
+
+| eval_add : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : Memory) (rd rs : Register),
+    inst m p (add_ rd rs) -> 
+    valid_jump p (S p) ->
+    v = plus (r rd) (r rs)  ->
+    r' = updateR r rd v ->
+    f' = updateF f ZF (beq_nat v 0) ->
+    (p, r, f, m) ---> (S p, r', f', m)
+
+| eval_sub : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : Memory) (rd rs : Register),
+    inst m p (sub_ rd rs) -> 
+    valid_jump p (S p) ->
+    v = minus (r rd) (r rs)  ->
+    r' = updateR r rd v ->
+    f' = updateF f ZF (beq_nat v 0) ->
+    (p, r, f, m) ---> (S p, r', f', m)
+
 
 (* TODO: Add other instructions *)
 
-where "S '-->' S'" := (evalR S S') : type_scope.
+where "S '--->' S'" := (evalR S S') : type_scope.
