@@ -54,21 +54,39 @@ Definition no_entrypoints := no_entrypoints_ s.
 Definition last_address : Address := starting_address + code_size + data_size.
 
 
-Definition protected (p : Address) : Prop := starting_address <= p -> p < last_address. 
+Definition protected (p : Address) : Prop := starting_address <= p /\ p < last_address. 
 
 Definition unprotected (p : Address) : Prop :=
   (p > 0 /\ p < starting_address) \/ last_address <= p.
 
-Lemma protected_unprotected_disjoint :
-  forall (p : Address), { p = 0 } + { protected p } + { unprotected p }.
-Proof.
-  intros p.
-  case p.
-    left.
-    left.
-    auto.
 
-    intro.
+Lemma not_protected_zero : ~ protected 0.
+Proof.
+  intro.
+  unfold protected in H. 
+  assert (starting_address > 0) by apply non_zero_starting_address.
+  omega.
+Qed.
+
+Lemma not_unprotected_zero : ~ unprotected 0.
+Proof.
+  intro.
+  unfold unprotected in H.
+  unfold last_address in H.
+  assert (starting_address > 0) by (apply non_zero_starting_address).
+  destruct H.
+  omega.
+
+  omega.
+Qed.
+
+Lemma protected_unprotected_disjoint :
+  forall (p : Address), not (protected p /\ unprotected p).
+Admitted.
+
+Lemma protected_unprotected_coverage :
+  forall (p : Address), p = 0 \/ protected p \/ unprotected p.
+Proof.
 
 Admitted.
 
