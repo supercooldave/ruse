@@ -181,7 +181,61 @@ Inductive evalR : State -> State -> Prop :=
     f' = updateF f ZF (beq_nat v 0) ->
     (p, r, f, m) ---> (S p, r', f', m)
 
-
 (* TODO: Add other instructions *)
+
+| eval_call : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
+    inst m p (call rd) -> 
+    p' = r rd ->
+    valid_jump p p' ->
+    set_stack p r m p' r' m' ->
+    r'' = updateR r' SP (S (r' SP)) ->
+    m'' = store m (r'' SP) (S p) ->
+    (p, r, f, m) ---> (p', r, f, m)
+
+| eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
+    inst m p ret ->
+    p' = lookup m (r SP) ->
+    valid_jump p p' ->
+    set_stack p r m p' r' m' ->
+    r'' = updateR r' SP (minus (r' SP) 1) ->
+    (p, r, f, m) ---> (p', r'', f, m')
+
+| eval_je_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
+    inst m p (je ri) -> 
+    f ZF = true ->
+    p' = r ri ->
+    same_jump p p' ->
+    (p, r, f, m) ---> (p', r, f, m)
+
+| eval_je_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
+    inst m p (je ri) -> 
+    f ZF = false ->
+    p' = S p ->
+    same_jump p p' ->
+    (p, r, f, m) ---> (p', r, f, m)
+
+| eval_jl_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
+    inst m p (jl ri) -> 
+    f SF = true ->
+    p' = r ri ->
+    same_jump p p' ->
+    (p, r, f, m) ---> (p', r, f, m)
+
+| eval_jl_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
+    inst m p (jl ri) -> 
+    f SF = false ->
+    p' = S p ->
+    same_jump p p' ->
+    (p, r, f, m) ---> (p', r, f, m)
+
+| eval_jump :  forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (rd : Register),
+    inst m p (jmp rd) -> 
+    p' = r rd ->
+    same_jump p p' ->
+    (p, r, f, m) ---> (p', r, f, m)
+
+(*
+| eval_halt  -- how to deal with -1?
+*)
 
 where "S '--->' S'" := (evalR S S') : type_scope.
