@@ -1,6 +1,10 @@
 Require Import Omega.
 Require Import List.
 
+
+(*=======================
+   Syntax
+=======================*)
 Inductive Register := R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | SP.
 Inductive Flag := SF | ZF.
 Definition Bit := bool. 
@@ -104,7 +108,7 @@ Parameter entrypoint_size : nat.
 Axiom non_zero_entrypoint_size : entrypoint_size > 0.
 
 
-(* Auxiliary funcitons modelling the access control policy *)
+(* Auxiliary functions modelling the access control policy *)
 Definition entrypoint (p : Address) : Prop :=
   exists m : nat, m < no_entrypoints /\ p = starting_address + m * entrypoint_size.  
 
@@ -167,12 +171,19 @@ Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFi
   same_jump p p' -> set_stack p r m p' r m.
 
 
+
+
+
+
+
+
+(*=======================
+   Operational Semantics
+=======================*)
 Open Scope type_scope.
+
 (* State of the operational semantics *)
 Definition State := Address * RegisterFile * Flags * Memory.
-Close Scope type_scope.
-
-Reserved Notation "S '--->' S'" (at level 50, left associativity).
 
 Parameter inst : Value -> Instruction -> Prop.
 
@@ -182,6 +193,8 @@ Axiom inst_unique_decode : forall (v v' : Value) (i : Instruction), inst v i -> 
 Axiom inst_no_zero : ~ exists i : Instruction, inst 0 i.
 
 (* Operational rules *)
+Reserved Notation "S '--->' S'" (at level 50, left associativity).
+
 Inductive evalR : State -> State -> Prop :=
   eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd rs : Register),
     inst (lookup m p) (movl rd rs) -> 
@@ -283,11 +296,58 @@ Inductive evalR : State -> State -> Prop :=
 where "S '--->' S'" := (evalR S S') : type_scope.
 
 
+
+
+
+(* contextual equivalence *)
+(* TODO: eliminate cause redundancy? *) 
+Definition Program := Memory.
+
+Inductive do_n_steps: State -> nat -> State -> Prop :=
+  | do_0 : forall sta, do_n_steps sta 0 sta
+  | do_Sn : forall n sta sta' sta'', 
+    sta ---> sta' ->
+    do_n_steps sta' n sta'' ->
+    do_n_steps sta (S n) sta''.
+
+
+Definition anysteps (n : nat) (sta  : State) := 
+  exists n' : nat , exists sta' : State,
+      n' >= n /\ do_n_steps sta n' sta'.
+
+Definition diverge (sta : State) := forall n, anysteps n sta.
+
+(* TODO *)
+Definition p_0 : Address := (S last_address). 
+Definition r_0 : RegisterFile := 
+  fun r : Register => 0.
+Definition f_0 : Flags := 
+  fun f : Flag => false.
+
+Definition initial : Program -> State  := 
+  fun p : Program => ( p_0, r_0, f_0, p ).
+
+
+Definition contextual_equivalence : Program -> Program -> Prop :=
+  fun p1 p2 : Program => ((diverge (initial p1)) <-> (diverge (initial p2))).
   
-Open Scope type_scope.
+
+
+
+
+
+
+
+
+
+
+
+(*=======================
+   Trace Semantics
+=======================*)
 
 (* TODO:  need to define a ProtectedMemory for the trace state *) 
-(* State for teh trace semantics *)
+(* State for the trace semantics *)
 Inductive StaTr := 
   Sta : State -> StaTr
 | Unk : Memory -> StaTr. 
@@ -297,7 +357,6 @@ Close Scope type_scope.
 Definition stuck_state ( p: Address ) ( m : Memory ) :=  p < 1.
 
 (* Labels for the trace semantics*)
-
 Inductive Label := 
   Tau : Label
 | Tick : Label
@@ -308,9 +367,9 @@ Inductive Label :=
 | Returnback : RegisterFile -> Flags -> Label.
 
 
+(* Trace semantics *)
 Reserved Notation " T '--' L '-->' T' " (at level 50, left associativity).
 
-(* Trace semantics *)
 Inductive trace : StaTr -> Label -> StaTr -> Prop :=
   tr_intern : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
     (p, r, f, m) ---> (p', r', f', m') ->
@@ -350,7 +409,7 @@ Inductive trace : StaTr -> Label -> StaTr -> Prop :=
 where "T '--' L '-->' T'" := (trace T L T') : type_scope.
 
 
-
+(* reflexive-transitive closure of the trace semantics *)
 Reserved Notation " T '==' L '==>>' T' " (at level 51, left associativity).
 
 Inductive trace_semantics : StaTr -> ( list Label ) -> StaTr -> Prop :=
