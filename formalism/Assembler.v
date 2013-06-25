@@ -51,6 +51,11 @@ Parameter lookup : Memory -> Address -> Value.
 Parameter store : Memory -> Address -> Value -> Memory.
 Parameter domain : Memory -> Address -> Prop.
 
+Axiom mem_lookup_store_match : forall (m : Memory) (a : Address) (v : Value), 
+  lookup (store m a v) a = v.
+Axiom mem_lookup_store_nomatch : forall (m : Memory) (a a' : Address) (v : Value),
+  a <> a' -> lookup (store m a' v) a = lookup m a.
+
 Definition RegisterFile := Register -> Value.
 (*Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
   fun (reg' : Register) => if (reg = reg') then v else r reg.*)
@@ -134,7 +139,8 @@ Parameter mext : Memory.
 Axiom dom_msec  : forall (a : Address), domain msec a <-> protected a.
 Axiom dom_mext  : forall (a : Address), domain mext a <-> ( a = 0  \/ unprotected a).
 
-
+Definition MemSec := { m : Memory | forall (a : Address), domain m a <-> protected a }.
+Definition MemExt := { m : Memory | forall (a : Address), domain mext a <-> ( a = 0  \/ unprotected a) }.
 
 (* Auxiliary functions modelling the access control policy *)
 Definition entrypoint (p : Address) : Prop :=
@@ -343,9 +349,9 @@ Definition contextual_equivalence : Program -> Program -> Prop :=
 
 (* TODO:  need to define a ProtectedMemory for the trace state *) 
 (* State for the trace semantics *)
-Inductive StaTr := 
-  Sta : State -> StaTr
-| Unk : Memory -> StaTr. 
+Inductive TraceState := 
+  Sta : State -> TraceState
+| Unk : Memory -> TraceState. 
 
 (* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
 Definition stuck_state ( p: Address ) ( m : Memory ) :=  
@@ -366,7 +372,7 @@ Inductive Label :=
 (* Trace semantics *)
 Reserved Notation " T '--' L '-->' T' " (at level 50, left associativity).
 
-Inductive trace : StaTr -> Label -> StaTr -> Prop :=
+Inductive trace : TraceState -> Label -> TraceState -> Prop :=
   tr_intern : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
     (p, r, f, m) ---> (p', r', f', m') ->
     int_jump p p' ->
@@ -408,15 +414,15 @@ where "T '--' L '-->' T'" := (trace T L T') : type_scope.
 (* reflexive-transitive closure of the trace semantics *)
 Reserved Notation " T '==' L '==>>' T' " (at level 51, left associativity).
 
-Inductive trace_semantics : StaTr -> ( list Label ) -> StaTr -> Prop :=
-  trace_refl : forall (t : StaTr),
+Inductive trace_semantics : TraceState -> ( list Label ) -> TraceState -> Prop :=
+  trace_refl : forall (t : TraceState),
     t == nil ==>> t
 
-| trace_tau : forall (t t' : StaTr),
+| trace_tau : forall (t t' : TraceState),
   t -- Tau --> t' ->
   t == nil ==>> t'
 
-| trace_trans : forall (t t' t'' : StaTr) (l : Label) (l' : list Label),
+| trace_trans : forall (t t' t'' : TraceState) (l : Label) (l' : list Label),
   t -- l --> t' ->
   t' == l' ==>> t''->
   t == cons l l' ==>> t''
@@ -425,7 +431,7 @@ where "T '==' L '==>>' T'" := (trace_semantics T L T') : type_scope.
 
 
 Definition trace_equivalence : Program -> Program -> Prop :=
-  fun p1 p2 : Program => forall p1' p2' : StaTr, forall l1 : list Label, 
+  fun p1 p2 : Program => forall p1' p2' : TraceState, forall l1 : list Label, 
     Sta (initial p1) == l1 ==>> p1' <->
     Sta (initial p2) == l1 ==>> p2'.
 
