@@ -323,8 +323,5 @@ Inductive trace : StaTr -> Label -> StaTr -> Prop :=
   inst (lookup m p) (ret) ->
   Sta (p, r, f, m) -- Act ( Gam ( Ret r f ) BN ) --> (Unk m)
 
-<<<<<<< HEAD
+
 where "T '--' L '-->' T'" := (trace T L T') : type_scope.
-=======
-where "T '--' L '-->' T'" := (trace T L T') : type_scope.
->>>>>>> a8b561e63f5b81fc8667ac959984004df9b6da09
