@@ -49,6 +49,7 @@ Inductive Instruction :=
 Parameter Memory : Set.
 Parameter lookup : Memory -> Address -> Value.
 Parameter store : Memory -> Address -> Value -> Memory.
+Parameter domain : Memory -> Address -> Prop.
 
 Definition RegisterFile := Register -> Value.
 (*Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
@@ -128,6 +129,10 @@ Axiom non_zero_entrypoint_size : entrypoint_size > 0.
 
 
 
+Parameter msec : Memory.
+Parameter mext : Memory.
+Axiom dom_msec  : forall (a : Address), domain msec a <-> protected a.
+Axiom dom_mext  : forall (a : Address), domain mext a <-> ( a = 0  \/ unprotected a).
 
 
 
@@ -453,3 +458,10 @@ apply trace_semantics_completeness.
 apply trace_semantics_soundness.
 Qed.
 
+
+
+
+
+(*TODO: generate labelled operational semantics
+
+  from this, generate the trace semantics HOOOW *) 
