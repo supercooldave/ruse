@@ -18,9 +18,11 @@ Fixpoint ble_nat (n m : nat) : bool :=
 Definition blt_nat (n m : nat) : bool :=
   if andb (ble_nat n m) (negb (beq_nat n m)) then true else false.
 
+
 Definition Address := nat.
 Definition Value := nat.
 
+(* Instructions of the low-level language *)
 Inductive Instruction :=
    movl : Register -> Register -> Instruction
  | movs : Register -> Register -> Instruction
@@ -54,6 +56,7 @@ Definition no_entrypoints := no_entrypoints_ s.
 Definition last_address : Address := starting_address + code_size + data_size.
 
 
+(* Memory partitions enforced by the memory descriptor *)
 Definition protected (p : Address) : Prop := starting_address <= p /\ p < last_address. 
 
 Definition unprotected (p : Address) : Prop :=
@@ -99,6 +102,8 @@ Qed.
 Parameter entrypoint_size : nat.
 Axiom non_zero_entrypoint_size : entrypoint_size > 0.
 
+
+(* Auxiliary funcitons modelling the access control policy *)
 Definition entrypoint (p : Address) : Prop :=
   exists m : nat, m < no_entrypoints /\ p = starting_address + m * entrypoint_size.  
 
@@ -129,11 +134,13 @@ Definition same_jump (p p' : Address) := int_jump p p' \/ ext_jump p p'.
 Definition valid_jump (p p' : Address) := same_jump p p' \/ entry_jump p p'  \/ exit_jump p p'.
 
 
+(* Pointers used to set up two stacks*)
 Definition SPsec := starting_address  + code_size.
 
 Definition SPext := last_address.
 
-
+(* Elements that constitute a program and its state *)
+(* TODO: change to something else instead of Parameter?*)
 Parameter Memory : Set.
 Parameter lookup : Memory -> Address -> Value.
 Parameter store : Memory -> Address -> Value -> Memory.
@@ -148,6 +155,8 @@ Parameter updateR : RegisterFile -> Register -> Value -> RegisterFile.
 Definition Flags := Flag -> Bit. 
 Parameter updateF : Flags -> Flag -> Bit -> Flags.
 
+
+(* Auxiliary funcitons that model the switching between stacks *)
 Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
   stack_out_to_in : forall (p p' : Address) (m m': Memory) (r r': RegisterFile),
   entry_jump p p' -> m' = store m SPext (r SP) -> r' = updateR r SP (lookup m SPsec) -> set_stack p r m p' r' m'
@@ -156,20 +165,22 @@ Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFi
 | stack_no_change : forall (p p' : Address) (m : Memory) (r : RegisterFile),
   same_jump p p' -> set_stack p r m p' r m.
 
-  
+
 Open Scope type_scope.
+(* State of the operational semantics *)
 Definition State := Address * RegisterFile * Flags * Memory.
 Close Scope type_scope.
 
 Reserved Notation "S '--->' S'" (at level 50, left associativity).
 
 Parameter inst : Value -> Instruction -> Prop.
+
+(*Some axiom stating that each decoded value is unique. *)
 Axiom inst_unique_encode : forall (v : Value) (i i' : Instruction), inst v i -> inst v i' -> i = i'.
 Axiom inst_unique_decode : forall (v v' : Value) (i : Instruction), inst v i -> inst v' i -> v = v'.
-Axiom inst_no_zero : ~ exists (i : Instruction), inst 0 i.
+Axiom inst_no_zero : ~ exists i : Instruction, inst 0 i.
 
-(* TODO : Some axiom stating that each decoded value is unique. *)
-
+(* Operational rules *)
 Inductive evalR : State -> State -> Prop :=
   eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd rs : Register),
     inst (lookup m p) (movl rd rs) -> 
@@ -271,32 +282,34 @@ Inductive evalR : State -> State -> Prop :=
 where "S '--->' S'" := (evalR S S') : type_scope.
 
 
-(*TODO need to define a ProtectedMemory for the trace state*) 
   
 Open Scope type_scope.
 
+(* TODO:  need to define a ProtectedMemory for the trace state *) 
+(* State for teh trace semantics *)
 Inductive StaTr := 
   Sta : State -> StaTr
 | Unk : Memory -> StaTr. 
 Close Scope type_scope.
 
-(* or not   lookup m p  in instruction *)
-Definition stuck_state ( p: Address ) ( m : Memory ) := p > 0.
+(* TODO: p == 0  OR  not   lookup m p  in instruction *)
+Definition stuck_state ( p: Address ) ( m : Memory ) :=  p < 1.
 
-Inductive Decoration := QM | BN.  (* ? | !*)
-Inductive Gamma := 
-  Ret : RegisterFile -> Flags -> Gamma 
-| Fun : RegisterFile -> Flags -> Value -> Gamma
-| Write : Address -> Value -> Gamma.
-Inductive Visible := 
-  Tick : Visible 
-| Gam : Gamma -> Decoration -> Visible.
+(* Labels for the trace semantics*)
+
 Inductive Label := 
   Tau : Label
-| Act : Visible -> Label.
+| Tick : Label
+| Write_out : Address -> Value -> Label
+| Call : RegisterFile -> Flags -> Value -> Label
+| Callback : RegisterFile -> Flags -> Value -> Label
+| Return : RegisterFile -> Flags -> Label
+| Returnback : RegisterFile -> Flags -> Label.
+
 
 Reserved Notation " T '--' L '-->' T' " (at level 50, left associativity).
 
+(* Trace semantics *)
 Inductive trace : StaTr -> Label -> StaTr -> Prop :=
   tr_intern : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
     (p, r, f, m) ---> (p', r', f', m') ->
@@ -306,32 +319,31 @@ Inductive trace : StaTr -> Label -> StaTr -> Prop :=
 | tr_internal_tick : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
   (p, r, f, m) ---> (p', r', f', m') ->
   stuck_state p' m' ->
-  Sta (p, r, f, m) -- Act Tick --> Sta (p', r', f', m')
+  Sta (p, r, f, m) -- Tick --> Sta (p', r', f', m')
 
 | tr_writeout : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd rs : Register),
   int_jump p (S p) ->
   inst (lookup m p ) (movs rd rs)->
   unprotected (lookup m (r rd)) ->
-  Sta (p, r, f, m) -- Act ( Gam ( Write (r rd) (r rs) ) BN ) --> Sta ( (S p), r, f, m) 
+  Sta (p, r, f, m) --  Write_out (r rd) (r rs) --> Sta ( (S p), r, f, m) 
 
 | tr_call : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
   entrypoint p ->
-  (Unk m) -- Act ( Gam ( Fun r f p ) QM ) --> Sta (p, r, f, m)
+  (Unk m) -- Call r f p  --> Sta (p, r, f, m)
 
 | tr_returnback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
   return_entrypoint p ->
-  (Unk m) -- Act ( Gam ( Ret r f ) QM ) --> Sta (p, r, f, m)
+  (Unk m) -- Returnback r f  --> Sta (p, r, f, m)
 
 | tr_callback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd : Register),
   inst (lookup m p) (call rd) ->
   exit_jump p (lookup m (r rd)) ->
-  Sta (p, r, f, m) -- Act ( Gam ( Fun r f (lookup m (r rd)) ) BN ) --> (Unk m)
+  Sta (p, r, f, m) -- Callback r f (lookup m (r rd)) --> (Unk m)
 
 | tr_return : forall (p p' : Address) (r : RegisterFile) (f: Flags) (m: Memory) (sp : Register),
   p' = lookup m (r sp) ->
   exit_jump p p'->
   inst (lookup m p) (ret) ->
-  Sta (p, r, f, m) -- Act ( Gam ( Ret r f ) BN ) --> (Unk m)
-
+  Sta (p, r, f, m) -- Return r f  --> (Unk m)
 
 where "T '--' L '-->' T'" := (trace T L T') : type_scope.
