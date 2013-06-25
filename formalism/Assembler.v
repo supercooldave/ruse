@@ -48,13 +48,19 @@ Inductive Instruction :=
 (* TODO: change to something else instead of Parameter?*)
 Parameter Memory : Set.
 Parameter lookup : Memory -> Address -> Value.
-Parameter store : Memory -> Address -> Value -> Memory.
+Parameter update : Memory -> Address -> Value -> Memory.
 Parameter domain : Memory -> Address -> Prop.
 
-Axiom mem_lookup_store_match : forall (m : Memory) (a : Address) (v : Value), 
-  lookup (store m a v) a = v.
-Axiom mem_lookup_store_nomatch : forall (m : Memory) (a a' : Address) (v : Value),
-  a <> a' -> lookup (store m a' v) a = lookup m a.
+(* Axioms from "Tensors of Comodels and Models for Operational Semantics" 
+   by Gordon Plotkin and John Power, MFPS 2008 *)
+Axiom mem_lookup_update : forall (m : Memory) (a : Address) (v : Value), 
+  lookup (update m a v) a = v.
+Axiom mem_update_lookup : forall (m : Memory) (a : Address) (v : Value), 
+  update m a (lookup m a) = m.
+Axiom mem_update_update_same : forall (m : Memory) (a : Address) (v v' : Value), 
+  update (update m a v) a v' = update m a v'.
+Axiom mem_update_update_diff : forall (m : Memory) (a a' : Address) (v v' : Value),
+  a <> a' -> update (update m a v) a' v' = update (update m a' v') a v.
 
 Definition RegisterFile := Register -> Value.
 (*Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
@@ -172,9 +178,9 @@ Definition SPext := last_address.
 (* Auxiliary functions that model the switching between stacks *)
 Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
   stack_out_to_in : forall (p p' : Address) (m m': Memory) (r r': RegisterFile),
-  entry_jump p p' -> m' = store m SPext (r SP) -> r' = updateR r SP (lookup m SPsec) -> set_stack p r m p' r' m'
+  entry_jump p p' -> m' = update m SPext (r SP) -> r' = updateR r SP (lookup m SPsec) -> set_stack p r m p' r' m'
 | stack_in_to_out : forall (p p' : Address) (m m' : Memory) (r r': RegisterFile),
-  exit_jump p p' -> m' = store m SPsec (r SP) -> r' = updateR r SP (lookup m SPext) -> set_stack p r m p' r' m'
+  exit_jump p p' -> m' = update m SPsec (r SP) -> r' = updateR r SP (lookup m SPext) -> set_stack p r m p' r' m'
 | stack_no_change : forall (p p' : Address) (m : Memory) (r : RegisterFile),
   same_jump p p' -> set_stack p r m p' r m.
 
@@ -215,7 +221,7 @@ Inductive evalR : State -> State -> Prop :=
     inst (lookup m p) (movs rd rs) -> 
     same_jump p (S p) ->
     write_allowed p (lookup m (r rd)) -> 
-    m' = store m (lookup m (r rs)) (r rd) ->  
+    m' = update m (lookup m (r rs)) (r rd) ->  
     (p, r, f, m) ---> (S p, r, f, m')
 
 | eval_movi : forall (p : Address) (i : Value) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd : Register),
@@ -252,7 +258,7 @@ Inductive evalR : State -> State -> Prop :=
     valid_jump p p' ->
     set_stack p r m p' r' m' ->
     r'' = updateR r' SP (S (r' SP)) ->
-    m'' = store m (r'' SP) (S p) ->
+    m'' = update m (r'' SP) (S p) ->
     (p, r, f, m) ---> (p', r, f, m)
 
 | eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
