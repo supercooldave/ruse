@@ -178,7 +178,7 @@ Parameter inst : Value -> Instruction -> Prop.
 (*Some axiom stating that each decoded value is unique. *)
 Axiom inst_unique_encode : forall (v : Value) (i i' : Instruction), inst v i -> inst v i' -> i = i'.
 Axiom inst_unique_decode : forall (v v' : Value) (i : Instruction), inst v i -> inst v' i -> v = v'.
-Axiom inst_no_zero : ~ exists (i : Instruction), inst 0 i.
+Axiom inst_no_zero : ~ exists i : Instruction, inst 0 i.
 
 (* Operational rules *)
 Inductive evalR : State -> State -> Prop :=
@@ -293,20 +293,19 @@ Inductive StaTr :=
 Close Scope type_scope.
 
 (* TODO: p == 0  OR  not   lookup m p  in instruction *)
-Definition stuck_state ( p: Address ) ( m : Memory ) := p = 0.
+Definition stuck_state ( p: Address ) ( m : Memory ) :=  p < 1.
 
 (* Labels for the trace semantics*)
-Inductive Decoration := QM | BN.  (* ? | !*)
-Inductive Gamma := 
-  Ret : RegisterFile -> Flags -> Gamma 
-| Fun : RegisterFile -> Flags -> Value -> Gamma
-| Write : Address -> Value -> Gamma.
-Inductive Visible := 
-  Tick : Visible 
-| Gam : Gamma -> Decoration -> Visible.
+
 Inductive Label := 
   Tau : Label
-| Act : Visible -> Label.
+| Tick : Label
+| Write_out : Address -> Value -> Label
+| Call : RegisterFile -> Flags -> Value -> Label
+| Callback : RegisterFile -> Flags -> Value -> Label
+| Return : RegisterFile -> Flags -> Label
+| Returnback : RegisterFile -> Flags -> Label.
+
 
 Reserved Notation " T '--' L '-->' T' " (at level 50, left associativity).
 
@@ -320,31 +319,31 @@ Inductive trace : StaTr -> Label -> StaTr -> Prop :=
 | tr_internal_tick : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
   (p, r, f, m) ---> (p', r', f', m') ->
   stuck_state p' m' ->
-  Sta (p, r, f, m) -- Act Tick --> Sta (p', r', f', m')
+  Sta (p, r, f, m) -- Tick --> Sta (p', r', f', m')
 
 | tr_writeout : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd rs : Register),
   int_jump p (S p) ->
   inst (lookup m p ) (movs rd rs)->
   unprotected (lookup m (r rd)) ->
-  Sta (p, r, f, m) -- Act ( Gam ( Write (r rd) (r rs) ) BN ) --> Sta ( (S p), r, f, m) 
+  Sta (p, r, f, m) --  Write_out (r rd) (r rs) --> Sta ( (S p), r, f, m) 
 
 | tr_call : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
   entrypoint p ->
-  (Unk m) -- Act ( Gam ( Fun r f p ) QM ) --> Sta (p, r, f, m)
+  (Unk m) -- Call r f p  --> Sta (p, r, f, m)
 
 | tr_returnback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
   return_entrypoint p ->
-  (Unk m) -- Act ( Gam ( Ret r f ) QM ) --> Sta (p, r, f, m)
+  (Unk m) -- Returnback r f  --> Sta (p, r, f, m)
 
 | tr_callback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd : Register),
   inst (lookup m p) (call rd) ->
   exit_jump p (lookup m (r rd)) ->
-  Sta (p, r, f, m) -- Act ( Gam ( Fun r f (lookup m (r rd)) ) BN ) --> (Unk m)
+  Sta (p, r, f, m) -- Callback r f (lookup m (r rd)) --> (Unk m)
 
 | tr_return : forall (p p' : Address) (r : RegisterFile) (f: Flags) (m: Memory) (sp : Register),
   p' = lookup m (r sp) ->
   exit_jump p p'->
   inst (lookup m p) (ret) ->
-  Sta (p, r, f, m) -- Act ( Gam ( Ret r f ) BN ) --> (Unk m)
+  Sta (p, r, f, m) -- Return r f  --> (Unk m)
 
 where "T '--' L '-->' T'" := (trace T L T') : type_scope.
