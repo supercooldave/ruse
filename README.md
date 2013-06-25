@@ -1,4 +1,4 @@
 ruse
 ====
 
-Ruse programming language.
+Ruse programming language and its formalisation.
