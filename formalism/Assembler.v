@@ -74,21 +74,27 @@ Proof.
   unfold unprotected in H.
   unfold last_address in H.
   assert (starting_address > 0) by (apply non_zero_starting_address).
-  destruct H.
-  omega.
-
-  omega.
+  destruct H; omega.
 Qed.
 
 Lemma protected_unprotected_disjoint :
   forall (p : Address), not (protected p /\ unprotected p).
-Admitted.
+Proof.
+  intros.
+  intro.
+  unfold protected, unprotected in H.
+  destruct H.
+  omega.
+Qed.
 
 Lemma protected_unprotected_coverage :
   forall (p : Address), p = 0 \/ protected p \/ unprotected p.
 Proof.
-
-Admitted.
+  intros.
+  unfold protected, unprotected.
+  unfold Address in *.
+  omega.
+Qed. 
 
 Parameter entrypoint_size : nat.
 Axiom non_zero_entrypoint_size : entrypoint_size > 0.
@@ -158,6 +164,10 @@ Close Scope type_scope.
 Reserved Notation "S '--->' S'" (at level 50, left associativity).
 
 Parameter inst : Value -> Instruction -> Prop.
+Axiom inst_unique_encode : forall (v : Value) (i i' : Instruction), inst v i -> inst v i' -> i = i'.
+Axiom inst_unique_decode : forall (v v' : Value) (i : Instruction), inst v i -> inst v' i -> v = v'.
+Axiom inst_no_zero : ~ exists (i : Instruction), inst 0 i.
+
 (* TODO : Some axiom stating that each decoded value is unique. *)
 
 Inductive evalR : State -> State -> Prop :=
