@@ -5,9 +5,6 @@ Require Import List.
 (*=======================
    Syntax
 =======================*)
-Inductive Register := R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | SP.
-Inductive Flag := SF | ZF.
-Definition Bit := bool. 
 
 (* TODO: Find better home for these -- better still, see if they are in Coq lib. *)
 Fixpoint ble_nat (n m : nat) : bool :=
@@ -23,9 +20,13 @@ Fixpoint ble_nat (n m : nat) : bool :=
 Definition blt_nat (n m : nat) : bool :=
   if andb (ble_nat n m) (negb (beq_nat n m)) then true else false.
 
-
 Definition Address := nat.
 Definition Value := nat.
+
+
+Inductive Register := R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | SP.
+Inductive Flag := SF | ZF.
+Definition Bit := bool. 
 
 (* Instructions of the low-level language *)
 Inductive Instruction :=
@@ -42,6 +43,23 @@ Inductive Instruction :=
  | ret  :                         Instruction
  | halt :                         Instruction.
 
+
+(* Elements that constitute a program and its state *)
+(* TODO: change to something else instead of Parameter?*)
+Parameter Memory : Set.
+Parameter lookup : Memory -> Address -> Value.
+Parameter store : Memory -> Address -> Value -> Memory.
+
+Definition RegisterFile := Register -> Value.
+(*Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
+  fun (reg' : Register) => if (reg = reg') then v else r reg.*)
+Parameter updateR : RegisterFile -> Register -> Value -> RegisterFile.
+
+Definition Flags := Flag -> Bit. 
+Parameter updateF : Flags -> Flag -> Bit -> Flags.
+
+
+(* Memory descriptor and related primitives *)
 Record MemoryDescriptor := MemDesc {
   starting_address_ : nat;
   code_size_ : nat;
@@ -52,21 +70,22 @@ Record MemoryDescriptor := MemDesc {
 Parameter s : MemoryDescriptor.
 
 Definition starting_address := starting_address_ s.
-Axiom non_zero_starting_address : starting_address > 0.
-
 Definition code_size := code_size_ s.
 Definition data_size := data_size_ s.
 Definition no_entrypoints := no_entrypoints_ s.
 
 Definition last_address : Address := starting_address + code_size + data_size.
 
+Axiom non_zero_starting_address : starting_address > 0.
+
+
+
+
 
 (* Memory partitions enforced by the memory descriptor *)
 Definition protected (p : Address) : Prop := starting_address <= p /\ p < last_address. 
-
 Definition unprotected (p : Address) : Prop :=
   (p > 0 /\ p < starting_address) \/ last_address <= p.
-
 
 Lemma not_protected_zero : ~ protected 0.
 Proof.
@@ -108,60 +127,38 @@ Parameter entrypoint_size : nat.
 Axiom non_zero_entrypoint_size : entrypoint_size > 0.
 
 
+
+
+
+
 (* Auxiliary functions modelling the access control policy *)
 Definition entrypoint (p : Address) : Prop :=
-  exists m : nat, m < no_entrypoints /\ p = starting_address + m * entrypoint_size.  
-
+  exists m : nat, m < no_entrypoints /\ p = starting_address + m * entrypoint_size.
 Definition data_segment (p : Address) : Prop :=
   starting_address + code_size <= p /\ p < last_address.
-
 Definition return_entrypoint (p : Address) : Prop :=
   p = starting_address + no_entrypoints * entrypoint_size.
 
 Inductive read_allowed : Address -> Address -> Prop :=
   read_protected : forall (p a : Address), protected p -> protected a -> read_allowed p a
 | read_unprotected : forall (p a : Address), unprotected p -> unprotected a -> read_allowed p a.
-
 Inductive write_allowed : Address -> Address -> Prop :=
   write_protected : forall (p a : Address), protected p -> data_segment a -> write_allowed p a
 | write_unprotected : forall (p a : Address), unprotected a -> write_allowed p a.
 
 Definition entry_jump (p p' : Address) := unprotected p /\ entrypoint p'.
-
 Definition exit_jump (p p' : Address) := protected p /\ unprotected p'.
-
 Definition int_jump (p p' : Address) := protected p /\ protected p' /\ ~ data_segment p'.
-
 Definition ext_jump (p p' : Address) := unprotected p /\ unprotected p'.
-
 Definition same_jump (p p' : Address) := int_jump p p' \/ ext_jump p p'.
-
 Definition valid_jump (p p' : Address) := same_jump p p' \/ entry_jump p p'  \/ exit_jump p p'.
 
 
 (* Pointers used to set up two stacks*)
 Definition SPsec := starting_address  + code_size.
-
 Definition SPext := last_address.
 
-(* Elements that constitute a program and its state *)
-(* TODO: change to something else instead of Parameter?*)
-Parameter Memory : Set.
-Parameter lookup : Memory -> Address -> Value.
-Parameter store : Memory -> Address -> Value -> Memory.
-
-Definition RegisterFile := Register -> Value.
-(*
-Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
-  fun (reg' : Register) => if (reg = reg') then v else r reg.
-*)
-Parameter updateR : RegisterFile -> Register -> Value -> RegisterFile.
-
-Definition Flags := Flag -> Bit. 
-Parameter updateF : Flags -> Flag -> Bit -> Flags.
-
-
-(* Auxiliary funcitons that model the switching between stacks *)
+(* Auxiliary functions that model the switching between stacks *)
 Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
   stack_out_to_in : forall (p p' : Address) (m m': Memory) (r r': RegisterFile),
   entry_jump p p' -> m' = store m SPext (r SP) -> r' = updateR r SP (lookup m SPsec) -> set_stack p r m p' r' m'
@@ -296,11 +293,8 @@ Inductive evalR : State -> State -> Prop :=
 where "S '--->' S'" := (evalR S S') : type_scope.
 
 
-
-
-
 (* contextual equivalence *)
-(* TODO: eliminate cause redundancy? *) 
+(* TODO: eliminate Program cause redundancy? *) 
 Definition Program := Memory.
 
 Inductive do_n_steps: State -> nat -> State -> Prop :=
@@ -310,23 +304,19 @@ Inductive do_n_steps: State -> nat -> State -> Prop :=
     do_n_steps sta' n sta'' ->
     do_n_steps sta (S n) sta''.
 
-
 Definition anysteps (n : nat) (sta  : State) := 
   exists n' : nat , exists sta' : State,
       n' >= n /\ do_n_steps sta n' sta'.
 
 Definition diverge (sta : State) := forall n, anysteps n sta.
 
-(* TODO *)
 Definition p_0 : Address := (S last_address). 
-Definition r_0 : RegisterFile := 
-  fun r : Register => 0.
-Definition f_0 : Flags := 
-  fun f : Flag => false.
+Definition r_0 : RegisterFile :=   fun r : Register => 0.
+Definition f_0 : Flags :=   fun f : Flag => false.
 
-Definition initial : Program -> State  := 
-  fun p : Program => ( p_0, r_0, f_0, p ).
+Definition initial : Program -> State  :=   fun p : Program => ( p_0, r_0, f_0, p ).
 
+(* TODO: define in terms of context. Need to change the memory? *)
 
 Definition contextual_equivalence : Program -> Program -> Prop :=
   fun p1 p2 : Program => ((diverge (initial p1)) <-> (diverge (initial p2))).
@@ -351,10 +341,11 @@ Definition contextual_equivalence : Program -> Program -> Prop :=
 Inductive StaTr := 
   Sta : State -> StaTr
 | Unk : Memory -> StaTr. 
-Close Scope type_scope.
 
-(* TODO: p == 0  OR  not   lookup m p  in instruction *)
-Definition stuck_state ( p: Address ) ( m : Memory ) :=  p < 1.
+(* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
+Definition stuck_state ( p: Address ) ( m : Memory ) :=  
+  p < 1 \/ forall i:Instruction, ~ inst (lookup m p) (i) .
+
 
 (* Labels for the trace semantics*)
 Inductive Label := 
@@ -420,13 +411,45 @@ Inductive trace_semantics : StaTr -> ( list Label ) -> StaTr -> Prop :=
   t -- Tau --> t' ->
   t == nil ==>> t'
 
-| trace_trans : forall (t t' t'' : StaTr) (l l' : list Label),
-  t == l ==>> t' ->
-  t' == l' ==>> t''->
-  t == l ++ l' ==>> t''
-
-| trace_action : forall (t t' : StaTr) (l : Label),
+| trace_trans : forall (t t' t'' : StaTr) (l : Label) (l' : list Label),
   t -- l --> t' ->
-  t == cons l nil ==>> t'
+  t' == l' ==>> t''->
+  t == cons l l' ==>> t''
 
 where "T '==' L '==>>' T'" := (trace_semantics T L T') : type_scope.
+
+
+Definition trace_equivalence : Program -> Program -> Prop :=
+  fun p1 p2 : Program => forall p1' p2' : StaTr, forall l1 : list Label, 
+    Sta (initial p1) == l1 ==>> p1' <->
+    Sta (initial p2) == l1 ==>> p2'.
+
+
+
+
+
+
+
+(*=======================
+   Theorems 
+=======================*)
+
+Lemma trace_semantics_soundness :
+  forall p1 p2: Program, trace_equivalence p1 p2 -> contextual_equivalence p1 p2.
+Proof.
+Admitted.
+
+Lemma trace_semantics_completeness :
+  forall p1 p2: Program, contextual_equivalence p1 p2 -> trace_equivalence p1 p2.
+Proof.
+Admitted.
+
+Theorem fully_abstract_trace_semantics : 
+  forall p1 p2 : Program, contextual_equivalence p1 p2 <-> trace_equivalence p1 p2.
+Proof.
+intros.
+split.
+apply trace_semantics_completeness.
+apply trace_semantics_soundness.
+Qed.
+
