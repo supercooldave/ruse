@@ -1,4 +1,5 @@
 Require Import Omega.
+Require Import List.
 
 Inductive Register := R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | SP.
 Inductive Flag := SF | ZF.
@@ -347,3 +348,26 @@ Inductive trace : StaTr -> Label -> StaTr -> Prop :=
   Sta (p, r, f, m) -- Return r f  --> (Unk m)
 
 where "T '--' L '-->' T'" := (trace T L T') : type_scope.
+
+
+
+Reserved Notation " T '==' L '==>>' T' " (at level 51, left associativity).
+
+Inductive trace_semantics : StaTr -> ( list Label ) -> StaTr -> Prop :=
+  trace_refl : forall (t : StaTr),
+    t == nil ==>> t
+
+| trace_tau : forall (t t' : StaTr),
+  t -- Tau --> t' ->
+  t == nil ==>> t'
+
+| trace_trans : forall (t t' t'' : StaTr) (l l' : list Label),
+  t == l ==>> t' ->
+  t' == l' ==>> t''->
+  t == l ++ l' ==>> t''
+
+| trace_action : forall (t t' : StaTr) (l : Label),
+  t -- l --> t' ->
+  t == cons l nil ==>> t'
+
+where "T '==' L '==>>' T'" := (trace_semantics T L T') : type_scope.
