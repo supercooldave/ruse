@@ -503,15 +503,24 @@ Inductive eval_same_dom : State -> State -> Prop :=
   inst (lookup m p) (movl rd rs) -> 
   same_jump p (S p) ->
   read_allowed p (lookup m (r rs)) -> 
-  same_jump p (r rd) ->  (* this read rule is only for readin in the same domain of the pc *)
   r' = updateR r rd (lookup m (r rs)) ->  
     (p, r, f, m) ~~> (S p, r', f, m)
     
-| sd_eval_movs : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
+| sd_eval_movs_prot : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
   inst (lookup m p) (movs rd rs) -> 
   same_jump p (S p) ->
   write_allowed p (lookup m (r rd)) -> 
-  same_jump p (r rd)->  (* this write rule is only for writing in the same domain of the pc *)
+  protected p->
+  protected (r rd)->
+  m' = update m (lookup m (r rs)) (r rd) ->  
+  (p, r, f, m) ~~> (S p, r, f, m')
+
+| sd_eval_movs_unprot : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
+  inst (lookup m p) (movs rd rs) -> 
+  same_jump p (S p) ->
+  write_allowed p (lookup m (r rd)) -> 
+  unprotected p->
+  unprotected (r rd)->
   m' = update m (lookup m (r rs)) (r rd) ->  
   (p, r, f, m) ~~> (S p, r, f, m')
     
@@ -654,15 +663,6 @@ Inductive eval_trace : State -> Label -> State -> Prop :=
   where "S '~~' L '~>' S'" := (eval_trace S L S') : type_scope.
 
 
-Lemma original_semantics_implies_labelled :
-  forall s1 s2 : State,
-    s1 ---> s2 ->
-    exists l : Label, s1 ~~ l ~> s2.
-Proof.
-intros.
-destruct H.
-Admitted.
-
 
 Lemma labelles_semantics_implies_original :
   forall (s1 s2 : State) (l : Label),
@@ -672,6 +672,7 @@ Proof.
 intros.
 destruct H. destruct H; auto. 
 apply eval_movl with (rs := rs) (rd := rd); auto.
+apply eval_movs with (rs := rs) (rd := rd); auto.
 apply eval_movs with (rs := rs) (rd := rd); auto.
 apply eval_movi with (i := i) (rd := rd); auto.
 apply eval_compare  with (r1 := r1) (r2 := r2); auto.
@@ -692,6 +693,18 @@ apply eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_intror; a
 apply eval_movs with (rs := rs) (rd := rd); auto.
 Qed.
 
+
+
+Lemma original_semantics_implies_labelled :
+  forall s1 s2 : State,
+    s1 ---> s2 ->
+    exists l : Label, s1 ~~ l ~> s2.
+Proof.
+intros.
+destruct H. apply ex_intro with (x := Tau).
+
+
+Admitted.
 (*TODO: generate labelled operational semantics
 
   from this, generate the trace semantics HOOOW *) 
