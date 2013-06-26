@@ -62,6 +62,7 @@ Axiom mem_update_update_same : forall (m : Memory) (a : Address) (v v' : Value),
 Axiom mem_update_update_diff : forall (m : Memory) (a a' : Address) (v v' : Value),
   a <> a' -> update (update m a v) a' v' = update (update m a' v') a v.
 
+
 Definition RegisterFile := Register -> Value.
 (*Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
   fun (reg' : Register) => if (reg = reg') then v else r reg.*)
