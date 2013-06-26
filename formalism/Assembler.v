@@ -341,7 +341,9 @@ Definition f_0 : Flags :=   fun f : Flag => false.
 Definition initial : Program -> State  :=   fun p : Program => ( p_0, r_0, f_0, p ).
 
 Definition plug : Program -> Context -> Program := fun (p : Program) (c : Context) => 
-  p.  (* TODO: wrong, should plug p and c, not return p*)
+  p. 
+(* TODO: wrong, should plug p and c, not return p
+   ####### Dave ######*)
 
 Definition contextual_equivalence : Program -> Program -> Prop := fun p1 p2 : Program => 
   forall c : Context, compatible p1 c -> compatible p2 c ->
@@ -368,7 +370,8 @@ Definition contextual_equivalence : Program -> Program -> Prop := fun p1 p2 : Pr
    Trace Semantics
 ==============================================*)
 
-(* TODO:  need to define a ProtectedMemory for the trace state *) 
+(* TODO:  need to define a ProtectedMemory for the trace state 
+   ####### Dave ######*) 
 (* State for the trace semantics *)
 Inductive TraceState := 
 | Sta : State -> TraceState
@@ -451,6 +454,7 @@ Inductive trace_semantics : TraceState -> ( list Label ) -> TraceState -> Prop :
 where "T '==' L '==>>' T'" := (trace_semantics T L T') : type_scope.
 
 
+(*TODO  change the definition to consider only secure programs, not whole programs like now *)
 Definition trace_equivalence : Program -> Program -> Prop :=
   fun p1 p2 : Program => forall p1' p2' : TraceState, forall l1 : list Label, 
     Sta (initial p1) == l1 ==>> p1' <->
@@ -463,14 +467,16 @@ Definition trace_equivalence : Program -> Program -> Prop :=
 
 
 (*==============================================
-   Theorems 
+   Theorems  on the trace semantics
 ==============================================*)
 
+(* TODO : requires interface preservation lemma *)
 Lemma trace_semantics_soundness :
   forall p1 p2: Program, trace_equivalence p1 p2 -> contextual_equivalence p1 p2.
 Proof.
 Admitted.
 
+(* TODO *)
 Lemma trace_semantics_completeness :
   forall p1 p2: Program, contextual_equivalence p1 p2 -> trace_equivalence p1 p2.
 Proof.
@@ -496,6 +502,7 @@ Qed.
    Labelled Operational Semantics
 ==============================================*)
 
+(* rules for reduction across the same domain (prot - prot) or (unprot - unprot) *)
 Reserved Notation "S '~~>' S'" (at level 50, left associativity).
 
 Inductive eval_same_dom : State -> State -> Prop :=
@@ -610,6 +617,7 @@ Inductive eval_same_dom : State -> State -> Prop :=
   where "S '~~>' S'" := (eval_same_dom S S') : type_scope.
 
 
+(* rules for reduction that cross a domain, effectively creating a label *)
 Reserved Notation "S '~~' L '~>' S'" (at level 50, left associativity).
 
 Inductive eval_trace : State -> Label -> State -> Prop :=
@@ -662,6 +670,11 @@ Inductive eval_trace : State -> Label -> State -> Prop :=
 
   where "S '~~' L '~>' S'" := (eval_trace S L S') : type_scope.
 
+
+
+(*==============================================
+   Theorems  on the labelled operational semantics
+==============================================*)
 
 
 Lemma labelles_semantics_implies_original :
@@ -724,6 +737,8 @@ Qed.
 
 
 
-(*TODO: generate labelled operational semantics
+(*TODO: generate a trace semantics from the labelled operational semantics. HOOOW??
+ probably rely on the missing notions from the trace semantics  e.g. the partial memory *) 
 
-  from this, generate the trace semantics HOOOW *) 
+
+
