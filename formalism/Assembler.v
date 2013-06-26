@@ -642,8 +642,15 @@ Inductive eval_trace : State -> Label -> State -> Prop :=
   r'' = updateR r' SP (minus (r' SP) 1) ->
   (p, r, f, m) ~~ Returnback r f ~> (p', r'', f, m')
 
-(*TODO: writeout*)
-  
+| los_eval_writeout : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
+  inst (lookup m p) (movs rd rs) -> 
+  same_jump p (S p) ->
+  write_allowed p (lookup m (r rd)) ->
+  protected p->
+  unprotected (r rd)->
+  m' = update m (lookup m (r rs)) (r rd) ->  
+  (p, r, f, m) ~~ Write_out (r rd) (r rs) ~> (S p, r, f, m')
+
   where "S '~~' L '~>' S'" := (eval_trace S L S') : type_scope.
 
 
@@ -665,10 +672,25 @@ Proof.
 intros.
 destruct H. destruct H; auto. 
 apply eval_movl with (rs := rs) (rd := rd); auto.
-apply eval_movs with  (rs := rs) (rd := rd); auto.
-
-
-Admitted.
+apply eval_movs with (rs := rs) (rd := rd); auto.
+apply eval_movi with (i := i) (rd := rd); auto.
+apply eval_compare  with (r1 := r1) (r2 := r2); auto.
+apply eval_add with (rs := rs) (rd := rd) (v := v); auto.
+apply eval_sub with (rs := rs) (rd := rd) (v := v); auto.
+apply eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. apply or_introl ; auto.
+apply eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_introl; auto.
+apply eval_je_true with (ri := ri); auto.
+apply eval_je_false with (ri := ri); auto.
+apply eval_jl_true with (ri := ri); auto.
+apply eval_jl_false with (ri := ri); auto.
+apply eval_jump with (rd := rd); auto.
+apply eval_halt; auto.
+apply eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. apply or_intror. apply or_introl; auto.
+apply eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. apply or_intror. apply or_intror; auto.
+apply eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_intror. apply or_intror; auto.
+apply eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_intror; auto.
+apply eval_movs with (rs := rs) (rd := rd); auto.
+Qed.
 
 (*TODO: generate labelled operational semantics
 
