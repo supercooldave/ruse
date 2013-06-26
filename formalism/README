@@ -1,0 +1,6 @@
+To prepare coq files for local import, simply compile them first
+using 
+  coq File.v
+
+Then import as usual
+  Require Import File.
