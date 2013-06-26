@@ -317,7 +317,7 @@ Parameter domainME : MemExt -> Address -> Prop.
 Definition Program := Memory.
 Definition Context := MemExt.
 
-Definition compatible := fun (p : Program) (c : Context),
+Definition compatible := fun (p : Program) (c : Context) =>
   forall (a : Address), ( (domain p a) <-> (~ domainME c a) /\ (domainME c a) <-> (~ domain p a)).
 
 Inductive do_n_steps: State -> nat -> State -> Prop :=
@@ -660,7 +660,10 @@ Lemma labelles_semantics_implies_original :
     s1 ---> s2.
 Proof.
 intros.
-destruct H. destruct H.  
+destruct H. destruct H; auto. 
+apply eval_movl with (rs := rs) (rd := rd); auto.
+apply eval_movs with  (rs := rs) (rd := rd); auto.
+
 
 Admitted.
 
