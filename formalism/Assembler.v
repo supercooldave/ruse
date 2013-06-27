@@ -1,28 +1,10 @@
 Require Import Omega.
 Require Import List.
-
+Require Import MachineModel.
 
 (*==============================================
    Syntax
 ==============================================*)
-
-(* TODO: Find better home for these -- better still, see if they are in Coq lib. *)
-Fixpoint ble_nat (n m : nat) : bool :=
-  match n with
-  | O => true
-  | S n' =>
-      match m with
-      | O => false
-      | S m' => ble_nat n' m'
-      end
-  end.
-
-Definition blt_nat (n m : nat) : bool :=
-  if andb (ble_nat n m) (negb (beq_nat n m)) then true else false.
-
-Definition Address := nat.
-Definition Value := nat.
-
 
 Inductive Register := R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | SP.
 Inductive Flag := SF | ZF.
@@ -44,25 +26,6 @@ Inductive Instruction :=
  | halt :                         Instruction.
 
 
-(* Elements that constitute a program and its state *)
-(* TODO: change to something else instead of Parameter?*)
-Parameter Memory : Set.
-Parameter lookup : Memory -> Address -> Value.
-Parameter update : Memory -> Address -> Value -> Memory.
-Parameter domain : Memory -> Address -> Prop.
-
-
-(* Axioms from "Tensors of Comodels and Models for Operational Semantics" 
-   by Gordon Plotkin and John Power, MFPS 2008 *)
-Axiom mem_lookup_update : forall (m : Memory) (a : Address) (v : Value), 
-  lookup (update m a v) a = v.
-Axiom mem_update_lookup : forall (m : Memory) (a : Address) (v : Value), 
-  update m a (lookup m a) = m.
-Axiom mem_update_update_same : forall (m : Memory) (a : Address) (v v' : Value), 
-  update (update m a v) a v' = update m a v'.
-Axiom mem_update_update_diff : forall (m : Memory) (a a' : Address) (v v' : Value),
-  a <> a' -> update (update m a v) a' v' = update (update m a' v') a v.
-
 
 Definition RegisterFile := Register -> Value.
 (*Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
@@ -72,34 +35,6 @@ Parameter updateR : RegisterFile -> Register -> Value -> RegisterFile.
 Definition Flags := Flag -> Bit. 
 Parameter updateF : Flags -> Flag -> Bit -> Flags.
 
-
-(* Memory descriptor and related primitives *)
-Record MemoryDescriptor := MemDesc {
-  starting_address_ : nat;
-  code_size_ : nat;
-  data_size_ : nat;
-  no_entrypoints_ : nat
-}.
-
-Parameter s : MemoryDescriptor.
-
-Definition starting_address := starting_address_ s.
-Definition code_size := code_size_ s.
-Definition data_size := data_size_ s.
-Definition no_entrypoints := no_entrypoints_ s.
-
-Definition last_address : Address := starting_address + code_size + data_size.
-
-Axiom non_zero_starting_address : starting_address > 0.
-
-
-
-
-
-(* Memory partitions enforced by the memory descriptor *)
-Definition protected (p : Address) : Prop := starting_address <= p /\ p < last_address. 
-Definition unprotected (p : Address) : Prop :=
-  (p > 0 /\ p < starting_address) \/ last_address <= p.
 
 Lemma not_protected_zero : ~ protected 0.
 Proof.
@@ -137,40 +72,7 @@ Proof.
   omega.
 Qed. 
 
-Parameter entrypoint_size : nat.
-Axiom non_zero_entrypoint_size : entrypoint_size > 0.
 
-
-
-
-
-
-(* Auxiliary functions modelling the access control policy *)
-Definition entrypoint (p : Address) : Prop :=
-  exists m : nat, m < no_entrypoints /\ p = starting_address + m * entrypoint_size.
-Definition data_segment (p : Address) : Prop :=
-  starting_address + code_size <= p /\ p < last_address.
-Definition return_entrypoint (p : Address) : Prop :=
-  p = starting_address + no_entrypoints * entrypoint_size.
-
-Inductive read_allowed : Address -> Address -> Prop :=
-  read_protected : forall (p a : Address), protected p -> protected a -> read_allowed p a
-| read_unprotected : forall (p a : Address), unprotected p -> unprotected a -> read_allowed p a.
-Inductive write_allowed : Address -> Address -> Prop :=
-  write_protected : forall (p a : Address), protected p -> data_segment a -> write_allowed p a
-| write_unprotected : forall (p a : Address), unprotected a -> write_allowed p a.
-
-Definition entry_jump (p p' : Address) := unprotected p /\ entrypoint p'.
-Definition exit_jump (p p' : Address) := protected p /\ unprotected p'.
-Definition int_jump (p p' : Address) := protected p /\ protected p' /\ ~ data_segment p'.
-Definition ext_jump (p p' : Address) := unprotected p /\ unprotected p'.
-Definition same_jump (p p' : Address) := int_jump p p' \/ ext_jump p p'.
-Definition valid_jump (p p' : Address) := same_jump p p' \/ entry_jump p p'  \/ exit_jump p p'.
-
-
-(* Pointers used to set up two stacks*)
-Definition SPsec := starting_address  + code_size.
-Definition SPext := last_address.
 
 (* Auxiliary functions that model the switching between stacks *)
 Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
@@ -180,10 +82,6 @@ Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFi
   exit_jump p p' -> m' = update m SPsec (r SP) -> r' = updateR r SP (lookup m SPext) -> set_stack p r m p' r' m'
 | stack_no_change : forall (p p' : Address) (m : Memory) (r : RegisterFile),
   same_jump p p' -> set_stack p r m p' r m.
-
-
-
-
 
 
 
@@ -707,7 +605,6 @@ apply eval_movs with (rs := rs) (rd := rd); auto.
 Qed.
 
 
-
 (* TODO: besides the problem with the admits, i don't know how to call the other labels into place
  there should be  5 more cases generated for them (writeout, call callback return returnback) *)
 Lemma original_semantics_implies_labelled :
@@ -718,7 +615,15 @@ Proof.
 intros.
 destruct H. 
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_movl with (rs := rs) (rd := rd); auto.
+apply ex_intro with (x := Tau). apply los_eval_same. 
+
+apply sd_eval_movs_prot with (rs := rs) (rd := rd); auto.
+
+
 admit. (* big problem. i get an address A, and the proof has (r rd), and i don't know how to unify them *)
+Admitted. 
+
+(*
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_movi with (i := i) (rd := rd); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_compare with (r1 := r1) (r2 := r2); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_add with (rs := rs) (rd := rd) (v := v); auto.
@@ -732,6 +637,8 @@ apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jl_false with
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jump with (rd := rd); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_halt; auto.
 Qed.
+
+*)
 
 
 
