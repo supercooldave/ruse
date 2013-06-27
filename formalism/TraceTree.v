@@ -28,3 +28,6 @@
 (* The idea is that the separation makes it easier to manage the production of
    code corresponding to the context. And that the additional structure inferred
    can help with the proof and construction of code. *)
+
+(* See, for instance, Martin Steffen's Habilitation thesis for a similar, if not
+   identical approach. *)

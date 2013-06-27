@@ -1,31 +1,24 @@
 Require Import MachineModel.
 Require Import Assembler.
+Require Import List.
+Require Import Omega.
+Require Import OperationalSemantics.   (* TODO: Suggests poor structure. Refactor to remove this dependency. *)
+
+
 
 (*==============================================
    Trace Semantics
 ==============================================*)
 
-(* TODO:  need to define a ProtectedMemory for the trace state 
-   ####### Dave ######*) 
 (* State for the trace semantics *)
 Inductive TraceState := 
-| Sta : State -> TraceState
-| Unk : Memory -> TraceState. 
+| Sta : StateSec -> TraceState
+| Unk : MemSec -> TraceState. 
 
 (* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
 Definition stuck_state ( p: Address ) ( m : Memory ) :=  
   p < 1 \/ forall i:Instruction, ~ inst (lookup m p) (i) .
 
-
-(* Labels for the trace semantics*)
-Inductive Label := 
-| Tau : Label
-| Tick : Label
-| Write_out : Address -> Value -> Label
-| Call : RegisterFile -> Flags -> Value -> Label
-| Callback : RegisterFile -> Flags -> Value -> Label
-| Return : RegisterFile -> Flags -> Label
-| Returnback : RegisterFile -> Flags -> Label.
 
 
 (* Trace semantics *)
