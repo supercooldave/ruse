@@ -718,7 +718,12 @@ Proof.
 intros.
 destruct H. 
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_movl with (rs := rs) (rd := rd); auto.
-admit. (* big problem. i get an address A, and the proof has (r rd), and i don't know how to unify them *)
+admit.
+(* intuitively:
+
+destruct H1. apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_movs_prot with (rd := rd) (rs := rs) ; auto.
+
+ big problem. i get an address 'a', and the proof has (r rd), and i don't know how to unify them *)
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_movi with (i := i) (rd := rd); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_compare with (r1 := r1) (r2 := r2); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_add with (rs := rs) (rd := rd) (v := v); auto.
