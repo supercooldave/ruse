@@ -210,15 +210,15 @@ Inductive evalR : State -> State -> Prop :=
 | eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd rs : Register),
   inst (lookup m p) (movl rd rs) -> 
   same_jump p (S p) ->
-  read_allowed p (lookup m (r rs)) -> 
+  read_allowed p  (r rs) -> 
   r' = updateR r rd (lookup m (r rs)) ->  
   (p, r, f, m) ---> (S p, r', f, m)
   
 | eval_movs : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
   inst (lookup m p) (movs rd rs) -> 
   same_jump p (S p) ->
-  write_allowed p (lookup m (r rd)) -> 
-  m' = update m (lookup m (r rs)) (r rd) ->  
+  write_allowed p  (r rd) -> 
+  m' = update m  (r rd) (r rs)->  
   (p, r, f, m) ---> (S p, r, f, m')
   
 | eval_movi : forall (p : Address) (i : Value) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd : Register),
@@ -410,7 +410,7 @@ Inductive trace : TraceState -> Label -> TraceState -> Prop :=
 | tr_writeout : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd rs : Register),
   int_jump p (S p) ->
   inst (lookup m p ) (movs rd rs)->
-  unprotected (lookup m (r rd)) ->
+  unprotected (r rd) ->
   Sta (p, r, f, m) --  Write_out (r rd) (r rs) --> Sta ( (S p), r, f, m) 
 
 | tr_call : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
@@ -509,26 +509,26 @@ Inductive eval_same_dom : State -> State -> Prop :=
 | sd_eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd rs : Register),
   inst (lookup m p) (movl rd rs) -> 
   same_jump p (S p) ->
-  read_allowed p (lookup m (r rs)) -> 
+  read_allowed p (r rs) -> 
   r' = updateR r rd (lookup m (r rs)) ->  
     (p, r, f, m) ~~> (S p, r', f, m)
     
 | sd_eval_movs_prot : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
   inst (lookup m p) (movs rd rs) -> 
   same_jump p (S p) ->
-  write_allowed p (lookup m (r rd)) -> 
+  write_allowed p (r rd) -> 
   protected p->
   protected (r rd)->
-  m' = update m (lookup m (r rs)) (r rd) ->  
+  m' = update m (r rd) (r rs) ->  
   (p, r, f, m) ~~> (S p, r, f, m')
 
 | sd_eval_movs_unprot : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
   inst (lookup m p) (movs rd rs) -> 
   same_jump p (S p) ->
-  write_allowed p (lookup m (r rd)) -> 
+  write_allowed p (r rd) -> 
   unprotected p->
   unprotected (r rd)->
-  m' = update m (lookup m (r rs)) (r rd) ->  
+  m' = update m (r rd) (r rs) ->  
   (p, r, f, m) ~~> (S p, r, f, m')
     
 | sd_eval_movi : forall (p : Address) (i : Value) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd : Register),
@@ -662,10 +662,10 @@ Inductive eval_trace : State -> Label -> State -> Prop :=
 | los_eval_writeout : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
   inst (lookup m p) (movs rd rs) -> 
   same_jump p (S p) ->
-  write_allowed p (lookup m (r rd)) ->
+  write_allowed p (r rd) ->
   protected p->
   unprotected (r rd)->
-  m' = update m (lookup m (r rs)) (r rd) ->  
+  m' = update m (r rd) (r rs) ->  
   (p, r, f, m) ~~ Write_out (r rd) (r rs) ~> (S p, r, f, m')
 
   where "S '~~' L '~>' S'" := (eval_trace S L S') : type_scope.
@@ -718,9 +718,7 @@ Proof.
 intros.
 destruct H. 
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_movl with (rs := rs) (rd := rd); auto.
-apply ex_intro with (x := Tau); apply los_eval_same. destruct H0. 
-  apply sd_eval_movs_prot with (rs := rs) (rd := rd); auto. apply or_introl; auto. destruct H0 ; auto. (* ? *) admit.
-  apply sd_eval_movs_unprot with (rs := rs) (rd := rd); auto. apply or_intror; auto. destruct H0; auto. (* ? *) admit.
+admit. (* big problem. i get an address A, and the proof has (r rd), and i don't know how to unify them *)
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_movi with (i := i) (rd := rd); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_compare with (r1 := r1) (r2 := r2); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_add with (rs := rs) (rd := rd) (v := v); auto.
@@ -734,11 +732,6 @@ apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jl_false with
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jump with (rd := rd); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_halt; auto.
 Qed.
-
-
-
-(*TODO: generate a trace semantics from the labelled operational semantics. HOOOW??
- probably rely on the missing notions from the trace semantics  e.g. the partial memory *) 
 
 
 

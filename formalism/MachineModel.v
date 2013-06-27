@@ -75,42 +75,6 @@ Definition protected (p : Address) : Prop := starting_address <= p /\ p < last_a
 Definition unprotected (p : Address) : Prop :=
   (p > 0 /\ p < starting_address) \/ last_address <= p.
 
-Lemma not_protected_zero : ~ protected 0.
-Proof.
-  intro.
-  unfold protected in H. 
-  assert (starting_address > 0) by apply non_zero_starting_address.
-  omega.
-Qed.
-
-Lemma not_unprotected_zero : ~ unprotected 0.
-Proof.
-  intro.
-  unfold unprotected in H.
-  unfold last_address in H.
-  assert (starting_address > 0) by (apply non_zero_starting_address).
-  destruct H; omega.
-Qed.
-
-Lemma protected_unprotected_disjoint :
-  forall (p : Address), not (protected p /\ unprotected p).
-Proof.
-  intros.
-  intro.
-  unfold protected, unprotected in H.
-  destruct H.
-  omega.
-Qed.
-
-Lemma protected_unprotected_coverage :
-  forall (p : Address), p = 0 \/ protected p \/ unprotected p.
-Proof.
-  intros.
-  unfold protected, unprotected.
-  unfold Address in *.
-  omega.
-Qed. 
-
 Parameter entrypoint_size : nat.
 Axiom non_zero_entrypoint_size : entrypoint_size > 0.
 
@@ -142,6 +106,7 @@ Definition valid_jump (p p' : Address) := same_jump p p' \/ entry_jump p p'  \/ 
 (* Pointers used to set up two stacks*)
 Definition SPsec := starting_address  + code_size.
 Definition SPext := last_address.
+
 
 
 
@@ -196,19 +161,58 @@ Definition f_0 : Flags :=   fun f : Flag => false.
 Definition initial : Program -> State  :=   fun p : Program => ( p_0, r_0, f_0, p ).
 
 
-
-(*==============================================
-   Properties
-==============================================*)
-(* TODO: a set of small lemmas that prove semi-trivial properties on MemSec, MemExt and so on *)
-
-
-
-
 (* State for the trace semantics --- probably doesn't belong here *)
 Inductive TraceState := 
 | Sta : StateSec -> TraceState
 | Unk : MemSec -> TraceState. 
+
+
+
+
+(*==============================================
+   Properties
+==============================================*)
+
+(* properties on the protection mechanism *)
+Lemma not_protected_zero : ~ protected 0.
+Proof.
+  intro.
+  unfold protected in H. 
+  assert (starting_address > 0) by apply non_zero_starting_address.
+  omega.
+Qed.
+
+Lemma not_unprotected_zero : ~ unprotected 0.
+Proof.
+  intro.
+  unfold unprotected in H.
+  unfold last_address in H.
+  assert (starting_address > 0) by (apply non_zero_starting_address).
+  destruct H; omega.
+Qed.
+
+Lemma protected_unprotected_disjoint :
+  forall (p : Address), not (protected p /\ unprotected p).
+Proof.
+  intros.
+  intro.
+  unfold protected, unprotected in H.
+  destruct H.
+  omega.
+Qed.
+
+Lemma protected_unprotected_coverage :
+  forall (p : Address), p = 0 \/ protected p \/ unprotected p.
+Proof.
+  intros.
+  unfold protected, unprotected.
+  unfold Address in *.
+  omega.
+Qed. 
+
+
+
+
 
 
 
