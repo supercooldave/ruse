@@ -109,7 +109,6 @@ Definition SPext := last_address.
 
 
 
-
 (* contextual equivalence *)
 (* TODO: eliminate Program cause redundancy? *) 
 Definition MemSec := { m : Memory | forall (a : Address), domain m a <-> protected a }.
@@ -159,14 +158,6 @@ Definition r_0 : RegisterFile :=   fun r : Register => 0.
 Definition f_0 : Flags :=   fun f : Flag => false.
 
 Definition initial : Program -> State  :=   fun p : Program => ( p_0, r_0, f_0, p ).
-
-
-(* State for the trace semantics --- probably doesn't belong here *)
-Inductive TraceState := 
-| Sta : StateSec -> TraceState
-| Unk : MemSec -> TraceState. 
-
-
 
 
 (*==============================================
