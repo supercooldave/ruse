@@ -75,7 +75,11 @@ where "T '==' L '==>>' T'" := (trace_semantics T L T') : type_scope.
 
 
 
-
+Definition trace_equivalence : Prop := 
+  forall (p1 p2 : MemSec),  
+    exists p1' : TraceState, exists p2' : TraceState, 
+      {l : list Label | (initial_trace p1) == l ==>> p1'} = {l : list Label | (initial_trace p2) == l ==>> p2'}.
+  
 
 
 
