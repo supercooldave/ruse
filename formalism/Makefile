@@ -4,7 +4,7 @@
 # The modules to be compiled by default.  
 # For these, just call “make” at the commandline.
 
-default: Assembler OperationalSemantics TraceTree LabelledOperationalSemantics MachineModel 
+default: Assembler OperationalSemantics TraceTree LabelledOperationalSemantics MachineModel TraceSemantics
 # TraceSemantics Results
 
 # All modules (invoked by “make all”).
@@ -32,6 +32,9 @@ LabelledOperationalSemantics: OperationalSemantics
 
 TraceTree: 
 	$(COQC) TraceTree.v
+
+TraceSemantics:
+	$(COQC) TraceSemantics.v
 
 # Call “make clean” to remove all compiled files:
 clean:

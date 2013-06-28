@@ -1,24 +1,15 @@
-Require Import MachineModel.
-Require Import Assembler.
 Require Import List.
 Require Import Omega.
-Require Import OperationalSemantics.   (* TODO: Suggests poor structure. Refactor to remove this dependency. *)
+
+Require Import MachineModel.
+Require Import Assembler.
+Require Import OperationalSemantics.  
 
 
 
 (*==============================================
    Trace Semantics
 ==============================================*)
-
-(* State for the trace semantics *)
-Inductive TraceState := 
-| Sta : StateSec -> TraceState
-| Unk : MemSec -> TraceState. 
-
-(* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
-Definition stuck_state ( p: Address ) ( m : Memory ) :=  
-  p < 1 \/ forall i:Instruction, ~ inst (lookup m p) (i) .
-
 
 
 (* Trace semantics *)
@@ -28,37 +19,37 @@ Inductive trace : TraceState -> Label -> TraceState -> Prop :=
 | tr_intern : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
   (p, r, f, m) ---> (p', r', f', m') ->
   int_jump p p' ->
-  Sta (p, r, f, m) -- Tau --> Sta (p', r', f', m')
+  Sta (p, r, f, getSecMem m) -- Tau --> Sta (p', r', f', getSecMem m')
 
 | tr_internal_tick : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
   (p, r, f, m) ---> (p', r', f', m') ->
   stuck_state p' m' ->
-  Sta (p, r, f, m) -- Tick --> Sta (p', r', f', m')
+  Sta (p, r, f, getSecMem m) -- Tick --> Sta (p', r', f', getSecMem m')
 
 | tr_writeout : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd rs : Register),
   int_jump p (S p) ->
   inst (lookup m p ) (movs rd rs)->
   unprotected (r rd) ->
-  Sta (p, r, f, m) --  Write_out (r rd) (r rs) --> Sta ( (S p), r, f, m) 
+  Sta (p, r, f, getSecMem m) --  Write_out (r rd) (r rs) --> Sta ( (S p), r, f, getSecMem m) 
 
 | tr_call : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
   entrypoint p ->
-  (Unk m) -- Call r f p  --> Sta (p, r, f, m)
+  (Unk (getSecMem m)) -- Call r f p  --> Sta (p, r, f, getSecMem m)
 
 | tr_returnback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
   return_entrypoint p ->
-  (Unk m) -- Returnback r f  --> Sta (p, r, f, m)
+  (Unk (getSecMem m)) -- Returnback r f  --> Sta (p, r, f, getSecMem m)
 
 | tr_callback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd : Register),
   inst (lookup m p) (call rd) ->
   exit_jump p (lookup m (r rd)) ->
-  Sta (p, r, f, m) -- Callback r f (lookup m (r rd)) --> (Unk m)
+  Sta (p, r, f, getSecMem m) -- Callback r f (lookup m (r rd)) --> (Unk (getSecMem m))
 
 | tr_return : forall (p p' : Address) (r : RegisterFile) (f: Flags) (m: Memory) (sp : Register),
   p' = lookup m (r sp) ->
   exit_jump p p'->
   inst (lookup m p) (ret) ->
-  Sta (p, r, f, m) -- Return r f  --> (Unk m)
+  Sta (p, r, f, getSecMem m) -- Return r f  --> (Unk (getSecMem m))
 
 where "T '--' L '-->' T'" := (trace T L T') : type_scope.
 
@@ -82,11 +73,9 @@ Inductive trace_semantics : TraceState -> ( list Label ) -> TraceState -> Prop :
 where "T '==' L '==>>' T'" := (trace_semantics T L T') : type_scope.
 
 
-(*TODO  change the definition to consider only secure programs, not whole programs like now *)
-Definition trace_equivalence : Program -> Program -> Prop :=
-  fun p1 p2 : Program => forall p1' p2' : TraceState, forall l1 : list Label, 
-    Sta (initial p1) == l1 ==>> p1' <->
-    Sta (initial p2) == l1 ==>> p2'.
+
+
+
 
 
 
