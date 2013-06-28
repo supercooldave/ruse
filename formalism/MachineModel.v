@@ -129,6 +129,9 @@ Definition valid_jump (p p' : Address) := same_jump p p' \/ entry_jump p p'  \/ 
 Definition SPsec := starting_address  + code_size.
 Definition SPext := last_address.
 
+Definition retback_ep : Address := starting_address + no_entrypoints * entrypoint_size.
+Definition local_store_ret := last_address - 1.
+
 (* =========
 Functions that model the switching of the stack
 ==========*)
@@ -139,6 +142,7 @@ Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFi
   exit_jump p p' -> m' = update m SPsec (r SP) -> r' = updateR r SP (lookup m SPext) -> set_stack p r m p' r' m'
 | stack_no_change : forall (p p' : Address) (m : Memory) (r : RegisterFile),
   same_jump p p' -> set_stack p r m p' r m.
+
 
 
 
