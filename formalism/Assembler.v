@@ -104,8 +104,6 @@ Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFi
 
 
 
-<<<<<<< HEAD
-
 
 
 
@@ -482,7 +480,3 @@ apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jump with (rd
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_halt; auto.
 Qed.
 
-
-
-=======
->>>>>>> 4fd312092aec3e6103109af6803792a6917abb13
