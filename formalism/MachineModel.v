@@ -93,7 +93,7 @@ Inductive read_allowed : Address -> Address -> Prop :=
 | read_unprotected : forall (p a : Address), unprotected p -> unprotected a -> read_allowed p a.
 Inductive write_allowed : Address -> Address -> Prop :=
   write_protected : forall (p a : Address), protected p -> data_segment a -> write_allowed p a
-| write_unprotected : forall (p a : Address), unprotected a -> write_allowed p a.
+| write_unprotected : forall (p a : Address), ~ p = 0 -> unprotected a -> write_allowed p a.
 
 Definition entry_jump (p p' : Address) := unprotected p /\ entrypoint p'.
 Definition exit_jump (p p' : Address) := protected p /\ unprotected p'.
