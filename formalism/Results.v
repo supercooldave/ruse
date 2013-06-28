@@ -113,6 +113,7 @@ exists (x := Callback r f p'). apply los_eval_callback with (r' := r') (r'' := r
 exists (x := Returnback r f p'). apply los_eval_retback with (r' := r'); auto.
 Qed.
 
+
 Theorem fully_abstract_labelled_operational_semantics : 
   forall s1 s2 : State,
     ((s1 ---> s2 -> exists l : Label, s1 ~~ l ~> s2) /\ (forall (l : Label), s1 ~~ l ~> s2 -> s1 ---> s2)).
@@ -122,6 +123,14 @@ split.
 apply original_semantics_implies_labelled.
 apply labelled_semantics_implies_original.
 Qed.
+
+
+
+
+
+
+
+>>>>>>> c137db4... Added the address in the return and fixed all related results.
 
 
 
