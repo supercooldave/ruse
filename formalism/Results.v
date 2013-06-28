@@ -57,6 +57,15 @@ destruct H.
      assert (p = 0 \/ protected p \/ unprotected p) by apply (protected_unprotected_coverage p). intuition. intuition.
 Qed.
 
+Lemma call_address : forall (p p' : Address),
+  write_allowed p p' ->
+  (protected p /\ data_segment p') \/
+  (unprotected p /\ unprotected p') \/
+  (protected p /\ unprotected p').
+Proof.
+Admitted.
+
+
 
 Lemma original_semantics_implies_labelled :
   forall s1 s2 : State,
@@ -77,7 +86,26 @@ apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_movi with (i 
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_compare with (r1 := r1) (r2 := r2); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_add with (rs := rs) (rd := rd) (v := v); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_sub with (rs := rs) (rd := rd) (v := v); auto.
-admit.
+destruct H1. 
+  destruct H1.
+    exists (x := Tau). apply los_eval_same. 
+      apply sd_eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. apply or_introl ; auto.
+    exists (x := Tau). apply los_eval_same.
+      apply sd_eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. apply or_intror ; auto.
+  destruct H1.
+    exists (x := Call r f p'). apply los_eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto.
+    exists (x := Callback r f p'). apply los_eval_callback with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto.
+destruct H1. 
+  destruct H1.
+    exists (x := Tau). apply los_eval_same. 
+      apply sd_eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_introl ; auto.
+    exists (x := Tau). apply los_eval_same. 
+      apply sd_eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_intror ; auto.
+    destruct H1.
+    exists (x := Returnback r f ). apply los_eval_retback with (r' := r'); auto.
+    exists (x := Return r f ). apply los_eval_ret with (r' := r'); auto.
+    
+   
 admit.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_je_true with (ri := ri); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_je_false with (ri := ri); auto.
