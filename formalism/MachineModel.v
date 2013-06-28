@@ -25,7 +25,6 @@ Definition Address := nat.
 Definition Value := nat.
 
 
-
 (* Elements that constitute a program and its state *)
 (* TODO: change to something else instead of Parameter?*)
 Parameter Memory : Set.
@@ -81,6 +80,26 @@ Axiom non_zero_entrypoint_size : entrypoint_size > 0.
 
 
 
+(* =========
+   Registers and so forth 
+==========*)
+Inductive Register := R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | SP.
+Inductive Flag := SF | ZF.
+Definition Bit := bool. 
+
+(* Registers *)
+Definition RegisterFile := Register -> Value.
+(*Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
+  fun (reg' : Register) => if (reg = reg') then v else r reg.*)
+Parameter updateR : RegisterFile -> Register -> Value -> RegisterFile.
+
+(* Flags *)
+Definition Flags := Flag -> Bit. 
+Parameter updateF : Flags -> Flag -> Bit -> Flags.
+
+
+
+
 (*==========
  Auxiliary functions modelling the access control policy 
 ==========*)
@@ -113,34 +132,15 @@ Definition SPext := last_address.
 (* =========
 Functions that model the switching of the stack
 ==========*)
-Inductive set_stack : MemoryDescriptor -> Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
-  stack_out_to_in : forall (s : MemoryDescriptor) (p p' : Address) (m m': Memory) (r r': RegisterFile),
-  entry_jump s p p' -> m' = store m (SPext s) (r SP) -> r' = updateR r SP (lookup m (SPsec s)) -> set_stack s p r m p' r' m'
-| stack_in_to_out : forall (s : MemoryDescriptor) (p p' : Address) (m m' : Memory) (r r': RegisterFile),
-  exit_jump s p p' -> m' = store m (SPsec s) (r SP) -> r' = updateR r SP (lookup m (SPext s)) -> set_stack s p r m p' r' m'
-| stack_no_change : forall (s : MemoryDescriptor) (p p' : Address) (m : Memory) (r : RegisterFile),
-  same_jump s p p' -> set_stack s p r m p' r m.
+Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
+  stack_out_to_in : forall (p p' : Address) (m m': Memory) (r r': RegisterFile),
+  entry_jump p p' -> m' = update m SPext (r SP) -> r' = updateR r SP (lookup m SPsec) -> set_stack p r m p' r' m'
+| stack_in_to_out : forall (p p' : Address) (m m' : Memory) (r r': RegisterFile),
+  exit_jump p p' -> m' = update m SPsec (r SP) -> r' = updateR r SP (lookup m SPext) -> set_stack p r m p' r' m'
+| stack_no_change : forall (p p' : Address) (m : Memory) (r : RegisterFile),
+  same_jump p p' -> set_stack p r m p' r m.
 
 
-
-
-
-(* =========
-   Registers and so forth 
-==========*)
-Inductive Register := R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | SP.
-Inductive Flag := SF | ZF.
-Definition Bit := bool. 
-
-(* Registers *)
-Definition RegisterFile := Register -> Value.
-(*Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
-  fun (reg' : Register) => if (reg = reg') then v else r reg.*)
-Parameter updateR : RegisterFile -> Register -> Value -> RegisterFile.
-
-(* Flags *)
-Definition Flags := Flag -> Bit. 
-Parameter updateF : Flags -> Flag -> Bit -> Flags.
 
 
 
@@ -178,7 +178,13 @@ Definition StateF (X : Type) := Address * RegisterFile * Flags * X.
 Definition State := StateF Memory.
 Definition StateSec := StateF MemSec.
 
-Close Scope type_scope.
+(* State for the trace semantics *)
+Inductive TraceState := 
+| Sta : StateSec -> TraceState
+| Unk : MemSec -> TraceState. 
+
+
+
 
 Definition p_0 : Address := (S last_address). 
 Definition r_0 : RegisterFile :=   fun r : Register => 0.
@@ -186,16 +192,6 @@ Definition f_0 : Flags :=   fun f : Flag => false.
 
 Definition initial : Program -> State  :=   fun p : Program => ( p_0, r_0, f_0, p ).
 
-(* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
-Definition stuck_state ( p: Address ) ( m : Memory ) :=  
-  p < 1 \/ forall i:Instruction, ~ inst (lookup m p) (i) .
-
-
-
-(* State for the trace semantics *)
-Inductive TraceState := 
-| Sta : StateSec -> TraceState
-| Unk : MemSec -> TraceState. 
 
 
 

@@ -11,9 +11,9 @@ Require Import Assembler.
 Open Scope type_scope.
 
 (* State of the operational semantics 
-   TODO : why is state redefined here?*)
+   TODO : why is state redefined here?
 Definition State := Address * RegisterFile * Flags * Memory.
-
+*)
 
 
 
@@ -147,9 +147,4 @@ Definition diverge (sta : State) := forall n, anysteps n sta.
 
 
 
-
-
-Definition contextual_equivalence : Program -> Program -> Prop := fun p1 p2 : Program => 
-  forall c : Context, compatible p1 c -> compatible p2 c ->
-    ( (diverge (initial (plug p1 c))) <-> (diverge (initial (plug p2 c))) ).
   
