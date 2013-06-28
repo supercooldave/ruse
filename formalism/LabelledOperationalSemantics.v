@@ -74,7 +74,7 @@ Inductive eval_same_dom : State -> State -> Prop :=
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (S (r' SP)) ->
   m'' = update m (r'' SP) (S p) ->
-  (p, r, f, m) ~~> (p', r, f, m)
+  (p, r, f, m) ~~> (p', r'', f, m'')
   
 | sd_eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
@@ -140,7 +140,7 @@ Inductive eval_trace : State -> Label -> State -> Prop :=
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (S (r' SP)) ->
   m'' = update m (r'' SP) (S p) ->
-  (p, r, f, m) ~~ Call r f p' ~> (p', r, f, m)
+  (p, r, f, m) ~~ Call r f p' ~> (p', r'', f, m'')
 
 | los_eval_callback : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
   inst (lookup m p) (call rd) -> 
@@ -148,16 +148,17 @@ Inductive eval_trace : State -> Label -> State -> Prop :=
   exit_jump p p' ->  
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (S (r' SP)) ->
-  m'' = update m (r'' SP) (S p) ->
-  (p, r, f, m) ~~ Callback r f p' ~> (p', r, f, m)
+  m'' = update (update m (r'' SP) (retback_ep)) (local_store_ret) (S p) ->
+  (p, r, f, m) ~~ Callback r f p' ~> (p', r'', f, m'')
 
 | los_eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
   p' = lookup m (r SP) ->
+  p' = retback_ep ->
   exit_jump p p' -> 
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->
-  (p, r, f, m) ~~ Return r f p'~> (p', r'', f, m')
+  (p, r, f, m) ~~ Return r f p'~> (lookup (m) (local_store_ret), r'', f, m')
   
 | los_eval_retback : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
