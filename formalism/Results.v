@@ -125,11 +125,6 @@ Qed.
 
 
 
-Definition contextual_equivalence : Program -> Program -> Prop := fun p1 p2 : Program => 
-  forall c : Context, compatible p1 c -> compatible p2 c ->
-    ( (diverge (initial (plug p1 c))) <-> (diverge (initial (plug p2 c))) ).
-  
-
 
 
 (*==============================================

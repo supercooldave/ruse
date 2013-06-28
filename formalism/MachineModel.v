@@ -200,6 +200,7 @@ Definition r_0 : RegisterFile :=   fun r : Register => 0.
 Definition f_0 : Flags :=   fun f : Flag => false.
 
 Definition initial : MemSec -> MemExt -> State  :=   fun (p : MemSec) (c : MemExt) => ( p_0, r_0, f_0, (plug c p) ).
+Definition initial_trace : MemSec -> TraceState  :=   fun (p : MemSec) => Sta ( p_0, r_0, f_0, p ).
 
 
 
