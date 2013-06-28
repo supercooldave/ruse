@@ -161,11 +161,12 @@ Definition MemExt := { m : Memory | forall (a : Address), domain m a <-> ( a = 0
 Parameter domainMS : MemSec -> Address -> Prop.
 Parameter domainME : MemExt -> Address -> Prop.
 
-Definition Program := Memory.
-Definition Context := MemExt.
+(*
+Definition Program := MemSec.
+Definition Context := MemExt.*)
 
-Definition compatible := fun (p : Program) (c : Context) =>
-  forall (a : Address), ( (domain p a) <-> (~ domainME c a) /\ (domainME c a) <-> (~ domain p a)).
+Definition compatible := fun (p : MemSec) (c : MemExt) =>
+  forall (a : Address), ( (domainMS p a) <-> (~ domainME c a) /\ (domainME c a) <-> (~ domainMS p a)).
 
 Parameter split : Memory -> MemExt * MemSec.
 Parameter plug : MemExt -> MemSec -> Memory.
@@ -198,7 +199,7 @@ Definition p_0 : Address := (S last_address).
 Definition r_0 : RegisterFile :=   fun r : Register => 0.
 Definition f_0 : Flags :=   fun f : Flag => false.
 
-Definition initial : Program -> State  :=   fun p : Program => ( p_0, r_0, f_0, p ).
+Definition initial : MemSec -> MemExt -> State  :=   fun (p : MemSec) (c : MemExt) => ( p_0, r_0, f_0, (plug c p) ).
 
 
 
@@ -263,8 +264,6 @@ Proof.
   unfold Address in *.
   omega.
 Qed. 
-
-
 
 
 
