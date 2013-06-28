@@ -28,18 +28,18 @@ apply eval_movi with (i := i) (rd := rd); auto.
 apply eval_compare  with (r1 := r1) (r2 := r2); auto.
 apply eval_add with (rs := rs) (rd := rd) (v := v); auto.
 apply eval_sub with (rs := rs) (rd := rd) (v := v); auto.
-apply eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. apply or_introl ; auto.
-apply eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_introl; auto.
+apply eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto.
+apply eval_ret with (r' := r') (r'' := r'') (m' := m'); auto.
 apply eval_je_true with (ri := ri); auto.
 apply eval_je_false with (ri := ri); auto.
 apply eval_jl_true with (ri := ri); auto.
 apply eval_jl_false with (ri := ri); auto.
 apply eval_jump with (rd := rd); auto.
 apply eval_halt; auto.
-apply eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. apply or_intror. apply or_introl; auto.
-apply eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. apply or_intror. apply or_intror; auto.
-apply eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_intror. apply or_intror; auto.
-apply eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_intror; auto.
+apply eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. 
+apply eval_call_in_to_out with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. 
+apply eval_ret with (r' := r') (r'' := r'') (m' := m') (p' := p') ; auto.  
+apply eval_ret_out_to_in with (r' := r') (r'' := r'') (m' := m') (p' := p'); auto. 
 apply eval_movs with (rs := rs) (rd := rd); auto.
 Qed.
 
@@ -93,8 +93,8 @@ destruct H1.
     exists (x := Tau). apply los_eval_same.
       apply sd_eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. apply or_intror ; auto.
   destruct H1.
-    exists (x := Call r f p'). apply los_eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto.
-    exists (x := Callback r f p'). apply los_eval_callback with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto.
+    exists (x := Call r f p'). 
+      apply los_eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto. red. split ; trivial. 
 destruct H1. 
   destruct H1.
     exists (x := Tau). apply los_eval_same. 
@@ -102,23 +102,26 @@ destruct H1.
     exists (x := Tau). apply los_eval_same. 
       apply sd_eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_intror ; auto.
     destruct H1.
-    exists (x := Returnback r f p'). apply los_eval_retback with (r' := r'); auto.
-    exists (x := Return r f p'). apply los_eval_ret with (r' := r'); auto.
+    exists (x := Return r f p'). apply los_eval_ret with (r' := r'); auto. red. split ; trivial.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_je_true with (ri := ri); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_je_false with (ri := ri); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jl_true with (ri := ri); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jl_false with (ri := ri); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jump with (rd := rd); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_halt; auto.
+exists (x := Callback r f p'). apply los_eval_callback with (r' := r') (r'' := r'') (m' := m')  (rd := rd); auto.
+exists (x := Returnback r f p'). apply los_eval_retback with (r' := r'); auto.
 Qed.
 
-
-
-
-
-
-
-
+Theorem fully_abstract_labelled_operational_semantics : 
+  forall s1 s2 : State,
+    ((s1 ---> s2 -> exists l : Label, s1 ~~ l ~> s2) /\ (forall (l : Label), s1 ~~ l ~> s2 -> s1 ---> s2)).
+Proof.
+intros.
+split.
+apply original_semantics_implies_labelled.
+apply labelled_semantics_implies_original.
+Qed.
 
 
 
