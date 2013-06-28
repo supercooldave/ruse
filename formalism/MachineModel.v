@@ -129,8 +129,8 @@ Definition valid_jump (p p' : Address) := same_jump p p' \/ entry_jump p p'  \/ 
 Definition SPsec := starting_address  + code_size.
 Definition SPext := last_address.
 
-Definition retback_ep : Address := starting_address + no_entrypoints * entrypoint_size.
-Definition local_store_ret := last_address - 1.
+Definition address_returnback_entry_point : Address := starting_address + no_entrypoints * entrypoint_size.
+
 
 (* =========
 Functions that model the switching of the stack

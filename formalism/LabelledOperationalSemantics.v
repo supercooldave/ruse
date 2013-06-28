@@ -146,9 +146,11 @@ Inductive eval_trace : State -> Label -> State -> Prop :=
   inst (lookup m p) (call rd) -> 
   p' = r rd ->
   exit_jump p p' ->  
+  r' = updateR r SP (S (r SP)) ->
+  m' = update m (r' SP) (S p)->
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (S (r' SP)) ->
-  m'' = update (update m (r'' SP) (retback_ep)) (local_store_ret) (S p) ->
+  m'' = (update m (r'' SP) (address_returnback_entry_point)) ->
   (p, r, f, m) ~~ Callback r f p' ~> (p', r'', f, m'')
 
 | los_eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
@@ -162,11 +164,11 @@ Inductive eval_trace : State -> Label -> State -> Prop :=
 | los_eval_retback : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
   p' = lookup m (r SP) ->
-  p' = retback_ep ->
+  p' = address_returnback_entry_point ->
   entry_jump p p' -> 
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->
-  (p, r, f, m) ~~ Returnback r f p'~> (lookup (m) (local_store_ret), r'', f, m')
+  (p, r, f, m) ~~ Returnback r f p'~> (p', r'', f, m')
 
 | los_eval_writeout : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
   inst (lookup m p) (movs rd rs) -> 

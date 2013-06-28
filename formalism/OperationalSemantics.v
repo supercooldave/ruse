@@ -125,19 +125,21 @@ Inductive evalR : State -> State -> Prop :=
   inst (lookup m p) (call rd) -> 
   p' = r rd ->
   exit_jump p p' ->
+  r' = updateR r SP (S (r SP)) ->
+  m' = update m (r' SP) (S p)->
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (S (r' SP)) ->
-  m'' = update (update m (r'' SP) (retback_ep)) (local_store_ret) (S p) ->
+  m'' = (update m (r'' SP) (address_returnback_entry_point)) ->
   (p, r, f, m) ---> (p', r'', f, m'')
   
 | eval_ret_out_to_in : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
   p' =  lookup m (r SP) ->
-  p' = retback_ep ->
+  p' = address_returnback_entry_point ->
   entry_jump p p' ->
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->
-  (p, r, f, m) ---> (lookup (m) (local_store_ret), r'', f, m')
+  (p, r, f, m) ---> ( p', r'', f, m')
   
   where "S '--->' S'" := (evalR S S') : type_scope.
 
