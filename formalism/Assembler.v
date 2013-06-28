@@ -1,7 +1,6 @@
 Require Import Omega.
 Require Import List.
 
-
 Require Import MachineModel.
 
 (*==============================================

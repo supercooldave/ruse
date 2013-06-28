@@ -26,7 +26,7 @@ Inductive eval_same_dom : State -> State -> Prop :=
   same_jump p (S p) ->
   write_allowed p (r rd) -> 
   protected p->
-  protected (r rd)->
+  data_segment (r rd)->
   m' = update m (r rd) (r rs) ->  
   (p, r, f, m) ~~> (S p, r, f, m')
 

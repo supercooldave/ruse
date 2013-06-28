@@ -8,7 +8,7 @@ default: Assembler OperationalSemantics TraceTree LabelledOperationalSemantics M
 # TraceSemantics Results
 
 # All modules (invoked by “make all”).
-all: Assembler OperationalSemantics TraceTree LabelledOperationalSemantics  MachineModel 
+all: Assembler OperationalSemantics TraceTree LabelledOperationalSemantics  MachineModel TraceSemantics
 # TraceSemantics Results
 
 # Command to be used for compiling coq files.

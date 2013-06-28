@@ -1,42 +1,13 @@
+Require Import List.
+Require Import Omega.
+
+Require Import MachineModel.
+Require Import Assembler.
+Require Import LabelledOperationalSemantics.
+Require Import OperationalSemantics.
+Require Import TraceSemantics.
 
 (* Temporary home for these *)
-
-
-
-
-Definition contextual_equivalence : Program -> Program -> Prop := fun p1 p2 : Program => 
-  forall c : Context, compatible p1 c -> compatible p2 c ->
-    ( (diverge (initial (plug p1 c))) <-> (diverge (initial (plug p2 c))) ).
-  
-
-
-
-(*==============================================
-   Theorems  on the trace semantics
-==============================================*)
-
-(* TODO : requires interface preservation lemma *)
-Lemma trace_semantics_soundness :
-  forall p1 p2: Program, trace_equivalence p1 p2 -> contextual_equivalence p1 p2.
-Proof.
-Admitted.
-
-(* TODO *)
-Lemma trace_semantics_completeness :
-  forall p1 p2: Program, contextual_equivalence p1 p2 -> trace_equivalence p1 p2.
-Proof.
-Admitted.
-
-Theorem fully_abstract_trace_semantics : 
-  forall p1 p2 : Program, contextual_equivalence p1 p2 <-> trace_equivalence p1 p2.
-Proof.
-intros.
-split.
-apply trace_semantics_completeness.
-apply trace_semantics_soundness.
-Qed.
-
-
 
 (*==============================================
    Theorems  on the labelled operational semantics
@@ -73,8 +44,20 @@ apply eval_movs with (rs := rs) (rd := rd); auto.
 Qed.
 
 
-(* TODO: besides the problem with the admits, i don't know how to call the other labels into place
- there should be  5 more cases generated for them (writeout, call callback return returnback) *)
+Lemma write_out_address : forall (p p' : Address),
+  write_allowed p p' ->
+  (protected p /\ data_segment p') \/
+  (unprotected p /\ unprotected p') \/
+  (protected p /\ unprotected p').
+Proof.
+intros.
+destruct H.
+  left. split; auto.
+  right. assert (protected p \/ unprotected p). 
+     assert (p = 0 \/ protected p \/ unprotected p) by apply (protected_unprotected_coverage p). intuition. intuition.
+Qed.
+
+
 Lemma original_semantics_implies_labelled :
   forall s1 s2 : State,
     s1 ---> s2 ->
@@ -83,15 +66,13 @@ Proof.
 intros.
 destruct H. 
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_movl with (rs := rs) (rd := rd); auto.
-apply ex_intro with (x := Tau). apply los_eval_same. 
-
-apply sd_eval_movs_prot with (rs := rs) (rd := rd); auto.
-
-
-admit. (* big problem. i get an address A, and the proof has (r rd), and i don't know how to unify them *)
-Admitted. 
-
-(*
+apply write_out_address in H1. destruct H1 as [[H1 H1'] | [[H1 H1'] | [H1 H1']]].
+  exists (x := Tau). apply los_eval_same. apply sd_eval_movs_prot with (rs := rs) (rd := rd); auto. 
+   apply write_protected; auto.
+  exists (x := Tau). apply los_eval_same. apply sd_eval_movs_unprot with (rs := rs) (rd := rd); auto. 
+   apply write_unprotected; auto. destruct p; auto. assert (~ unprotected 0) by apply not_unprotected_zero. contradiction.
+  exists (x := Write_out (r rd) (r rs)). apply los_eval_writeout; auto. apply write_unprotected; auto. 
+   destruct p; auto. assert (~ protected 0) by apply not_protected_zero. contradiction.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_movi with (i := i) (rd := rd); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_compare with (r1 := r1) (r2 := r2); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_add with (rs := rs) (rd := rd) (v := v); auto.
@@ -113,3 +94,35 @@ Qed.
 
 
 
+
+Definition contextual_equivalence : Program -> Program -> Prop := fun p1 p2 : Program => 
+  forall c : Context, compatible p1 c -> compatible p2 c ->
+    ( (diverge (initial (plug p1 c))) <-> (diverge (initial (plug p2 c))) ).
+  
+
+
+
+(*==============================================
+   Theorems  on the trace semantics
+==============================================*)
+
+(* TODO : requires interface preservation lemma *)
+Lemma trace_semantics_soundness :
+  forall p1 p2: Program, trace_equivalence p1 p2 -> contextual_equivalence p1 p2.
+Proof.
+Admitted.
+
+(* TODO *)
+Lemma trace_semantics_completeness :
+  forall p1 p2: Program, contextual_equivalence p1 p2 -> trace_equivalence p1 p2.
+Proof.
+Admitted.
+
+Theorem fully_abstract_trace_semantics : 
+  forall p1 p2 : Program, contextual_equivalence p1 p2 <-> trace_equivalence p1 p2.
+Proof.
+intros.
+split.
+apply trace_semantics_completeness.
+apply trace_semantics_soundness.
+Qed.
