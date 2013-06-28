@@ -34,8 +34,7 @@ Parameter update : Memory -> Address -> Value -> Memory.
 Parameter domain : Memory -> Address -> Prop.
 
 
-(* Axioms from "Tensors of Comodels and Models for Operational Semantics" 
-   by Gordon Plotkin and John Power, MFPS 2008 *)
+(* Axioms from "Tensors of Comodels and Models for Operational Semantics"    by Gordon Plotkin and John Power, MFPS 2008 *)
 
 Axiom mem_lookup_update : forall (m : Memory) (a : Address) (v : Value), 
   lookup (update m a v) a = v.
@@ -50,7 +49,9 @@ Axiom mem_update_update_diff : forall (m : Memory) (a a' : Address) (v v' : Valu
   a <> a' -> update (update m a v) a' v' = update (update m a' v') a v.
 
 
-(* Memory descriptor and related primitives *)
+(* =========
+   Memory descriptor and related primitives 
+==========*)
 Record MemoryDescriptor := MemDesc {
   starting_address_ : nat;
   code_size_ : nat;
@@ -80,7 +81,9 @@ Axiom non_zero_entrypoint_size : entrypoint_size > 0.
 
 
 
-(* Auxiliary functions modelling the access control policy *)
+(*==========
+ Auxiliary functions modelling the access control policy 
+==========*)
 Definition entrypoint (p : Address) : Prop :=
   exists m : nat, m < no_entrypoints /\ p = starting_address + m * entrypoint_size.
 Definition data_segment (p : Address) : Prop :=
@@ -107,10 +110,47 @@ Definition valid_jump (p p' : Address) := same_jump p p' \/ entry_jump p p'  \/ 
 Definition SPsec := starting_address  + code_size.
 Definition SPext := last_address.
 
+(* =========
+Functions that model the switching of the stack
+==========*)
+Inductive set_stack : MemoryDescriptor -> Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
+  stack_out_to_in : forall (s : MemoryDescriptor) (p p' : Address) (m m': Memory) (r r': RegisterFile),
+  entry_jump s p p' -> m' = store m (SPext s) (r SP) -> r' = updateR r SP (lookup m (SPsec s)) -> set_stack s p r m p' r' m'
+| stack_in_to_out : forall (s : MemoryDescriptor) (p p' : Address) (m m' : Memory) (r r': RegisterFile),
+  exit_jump s p p' -> m' = store m (SPsec s) (r SP) -> r' = updateR r SP (lookup m (SPext s)) -> set_stack s p r m p' r' m'
+| stack_no_change : forall (s : MemoryDescriptor) (p p' : Address) (m : Memory) (r : RegisterFile),
+  same_jump s p p' -> set_stack s p r m p' r m.
 
 
-(* contextual equivalence *)
-(* TODO: eliminate Program cause redundancy? *) 
+
+
+
+(* =========
+   Registers and so forth 
+==========*)
+Inductive Register := R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | SP.
+Inductive Flag := SF | ZF.
+Definition Bit := bool. 
+
+(* Registers *)
+Definition RegisterFile := Register -> Value.
+(*Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
+  fun (reg' : Register) => if (reg = reg') then v else r reg.*)
+Parameter updateR : RegisterFile -> Register -> Value -> RegisterFile.
+
+(* Flags *)
+Definition Flags := Flag -> Bit. 
+Parameter updateF : Flags -> Flag -> Bit -> Flags.
+
+
+
+
+
+
+
+(* =========
+ Definition of program, component, types of memories and related operations, and states
+==========*)
 Definition MemSec := { m : Memory | forall (a : Address), domain m a <-> protected a }.
 Definition MemExt := { m : Memory | forall (a : Address), domain m a <-> ( a = 0  \/ unprotected a) }.
 
@@ -129,20 +169,7 @@ Parameter plug : MemExt -> MemSec -> Memory.
 Axiom split_plug_mem : forall (m : Memory) (msec : MemSec) (mext : MemExt), 
   split m = (mext, msec) <-> plug mext msec = m.
 
-(* Registers and so forth *)
-Inductive Register := R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | R10 | R11 | SP.
-Inductive Flag := SF | ZF.
-Definition Bit := bool. 
 
-(* Registers *)
-Definition RegisterFile := Register -> Value.
-(*Definition updateR (r : RegisterFile) (reg : Register) (v : Value) : RegisterFile :=
-  fun (reg' : Register) => if (reg = reg') then v else r reg.*)
-Parameter updateR : RegisterFile -> Register -> Value -> RegisterFile.
-
-(* Flags *)
-Definition Flags := Flag -> Bit. 
-Parameter updateF : Flags -> Flag -> Bit -> Flags.
 
 (* Complete program state *)
 Open Scope type_scope.
@@ -159,12 +186,46 @@ Definition f_0 : Flags :=   fun f : Flag => false.
 
 Definition initial : Program -> State  :=   fun p : Program => ( p_0, r_0, f_0, p ).
 
+(* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
+Definition stuck_state ( p: Address ) ( m : Memory ) :=  
+  p < 1 \/ forall i:Instruction, ~ inst (lookup m p) (i) .
+
+
+
+(* State for the trace semantics *)
+Inductive TraceState := 
+| Sta : StateSec -> TraceState
+| Unk : MemSec -> TraceState. 
+
+
+
+
+(* =========
+   Labels for the trace semantics and the labelled operational
+==========*)
+Inductive Label := 
+| Tau : Label
+| Tick : Label
+| Write_out : Address -> Value -> Label
+| Call : RegisterFile -> Flags -> Value -> Label
+| Callback : RegisterFile -> Flags -> Value -> Label
+| Return : RegisterFile -> Flags -> Label
+| Returnback : RegisterFile -> Flags -> Label.
+
+
+
+
+
+
+
+
+
 
 (*==============================================
-   Properties
+   Properties 
+    of the protection mechanism 
 ==============================================*)
 
-(* properties on the protection mechanism *)
 Lemma not_protected_zero : ~ protected 0.
 Proof.
   intro.

@@ -1,8 +1,10 @@
 Require Import List.
 Require Import Omega.
+
 Require Import MachineModel.
 Require Import Assembler.
-Require Import OperationalSemantics.  (* TODO: Suggests poor structure. Refactor to remove this dependency. *)
+Require Import OperationalSemantics.  (* TODO: Suggests poor structure. Refactor to remove this dependency. 
+                                         Only dependancy is on State*)
 
 
 
@@ -78,7 +80,7 @@ Inductive eval_same_dom : State -> State -> Prop :=
   
 | sd_eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
-  p' = lookup m (r SP) ->
+  p' = (r SP) ->
   same_jump p p' -> (* only jumps between the same domains*)
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->

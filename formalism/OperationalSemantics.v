@@ -1,5 +1,6 @@
 Require Import List.
 Require Import Omega.
+
 Require Import MachineModel.
 Require Import Assembler.
 
@@ -9,15 +10,13 @@ Require Import Assembler.
 ==============================================*)
 Open Scope type_scope.
 
-(* State of the operational semantics *)
+(* State of the operational semantics 
+   TODO : why is state redefined here?*)
 Definition State := Address * RegisterFile * Flags * Memory.
 
-Parameter inst : Value -> Instruction -> Prop.
 
-(*Some axiom stating that each decoded value is unique. *)
-Axiom inst_unique_encode : forall (v : Value) (i i' : Instruction), inst v i -> inst v i' -> i = i'.
-Axiom inst_unique_decode : forall (v v' : Value) (i : Instruction), inst v i -> inst v' i -> v = v'.
-Axiom inst_no_zero : ~ exists i : Instruction, inst 0 i.
+
+
 
 (* Operational rules *)
 Reserved Notation "S '--->' S'" (at level 50, left associativity).
@@ -76,7 +75,7 @@ Inductive evalR : State -> State -> Prop :=
   
 | eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
-  p' = lookup m (r SP) ->
+  p' =  (r SP) ->
   valid_jump p p' ->
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->
@@ -124,6 +123,15 @@ Inductive evalR : State -> State -> Prop :=
 
 
 
+
+
+
+
+
+
+
+(* Inspired by some work of Benton *)
+
 Inductive do_n_steps: State -> nat -> State -> Prop :=
 | do_0 : forall sta, do_n_steps sta 0 sta
 | do_Sn : forall n sta sta' sta'', 
@@ -138,3 +146,10 @@ Definition anysteps (n : nat) (sta  : State) :=
 Definition diverge (sta : State) := forall n, anysteps n sta.
 
 
+
+
+
+Definition contextual_equivalence : Program -> Program -> Prop := fun p1 p2 : Program => 
+  forall c : Context, compatible p1 c -> compatible p2 c ->
+    ( (diverge (initial (plug p1 c))) <-> (diverge (initial (plug p2 c))) ).
+  

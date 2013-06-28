@@ -1,24 +1,15 @@
-Require Import MachineModel.
-Require Import Assembler.
 Require Import List.
 Require Import Omega.
-Require Import OperationalSemantics.   (* TODO: Suggests poor structure. Refactor to remove this dependency. *)
+
+Require Import MachineModel.
+Require Import Assembler.
+Require Import OperationalSemantics.  
 
 
 
 (*==============================================
    Trace Semantics
 ==============================================*)
-
-(* State for the trace semantics *)
-Inductive TraceState := 
-| Sta : StateSec -> TraceState
-| Unk : MemSec -> TraceState. 
-
-(* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
-Definition stuck_state ( p: Address ) ( m : Memory ) :=  
-  p < 1 \/ forall i:Instruction, ~ inst (lookup m p) (i) .
-
 
 
 (* Trace semantics *)
@@ -55,7 +46,7 @@ Inductive trace : TraceState -> Label -> TraceState -> Prop :=
   Sta (p, r, f, m) -- Callback r f (lookup m (r rd)) --> (Unk m)
 
 | tr_return : forall (p p' : Address) (r : RegisterFile) (f: Flags) (m: Memory) (sp : Register),
-  p' = lookup m (r sp) ->
+  p' = (r sp) ->
   exit_jump p p'->
   inst (lookup m p) (ret) ->
   Sta (p, r, f, m) -- Return r f  --> (Unk m)
@@ -80,6 +71,8 @@ Inductive trace_semantics : TraceState -> ( list Label ) -> TraceState -> Prop :
   t == cons l l' ==>> t''
 
 where "T '==' L '==>>' T'" := (trace_semantics T L T') : type_scope.
+
+
 
 
 (*TODO  change the definition to consider only secure programs, not whole programs like now *)
