@@ -207,8 +207,8 @@ Inductive Label :=
 | Write_out : Address -> Value -> Label
 | Call : RegisterFile -> Flags -> Value -> Label
 | Callback : RegisterFile -> Flags -> Value -> Label
-| Return : RegisterFile -> Flags -> Label
-| Returnback : RegisterFile -> Flags -> Label.
+| Return : RegisterFile -> Flags -> Value -> Label
+| Returnback : RegisterFile -> Flags -> Value -> Label.
 
 
 

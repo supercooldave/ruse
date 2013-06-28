@@ -102,11 +102,8 @@ destruct H1.
     exists (x := Tau). apply los_eval_same. 
       apply sd_eval_ret with (r' := r') (r'' := r'') (m' := m'); auto. apply or_intror ; auto.
     destruct H1.
-    exists (x := Returnback r f ). apply los_eval_retback with (r' := r'); auto.
-    exists (x := Return r f ). apply los_eval_ret with (r' := r'); auto.
-    
-   
-admit.
+    exists (x := Returnback r f p'). apply los_eval_retback with (r' := r'); auto.
+    exists (x := Return r f p'). apply los_eval_ret with (r' := r'); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_je_true with (ri := ri); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_je_false with (ri := ri); auto.
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jl_true with (ri := ri); auto.
@@ -115,7 +112,7 @@ apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jump with (rd
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_halt; auto.
 Qed.
 
-*)
+
 
 
 

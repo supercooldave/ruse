@@ -38,7 +38,7 @@ Inductive trace : TraceState -> Label -> TraceState -> Prop :=
 
 | tr_returnback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
   return_entrypoint p ->
-  (Unk (getSecMem m)) -- Returnback r f  --> Sta (p, r, f, getSecMem m)
+  (Unk (getSecMem m)) -- Returnback r f p --> Sta (p, r, f, getSecMem m)
 
 | tr_callback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd : Register),
   inst (lookup m p) (call rd) ->
@@ -49,7 +49,7 @@ Inductive trace : TraceState -> Label -> TraceState -> Prop :=
   p' = lookup m (r sp) ->
   exit_jump p p'->
   inst (lookup m p) (ret) ->
-  Sta (p, r, f, getSecMem m) -- Return r f  --> (Unk (getSecMem m))
+  Sta (p, r, f, getSecMem m) -- Return r f p' --> (Unk (getSecMem m))
 
 where "T '--' L '-->' T'" := (trace T L T') : type_scope.
 
