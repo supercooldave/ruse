@@ -78,7 +78,7 @@ Inductive eval_same_dom : State -> State -> Prop :=
   
 | sd_eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
-  p' = (r SP) ->
+  p' = lookup m (r SP) ->
   same_jump p p' -> (* only jumps between the same domains*)
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->

@@ -75,7 +75,7 @@ Inductive evalR : State -> State -> Prop :=
   
 | eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
-  p' =  (r SP) ->
+  p' =  lookup m (r SP) ->
   valid_jump p p' ->
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->

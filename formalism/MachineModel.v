@@ -184,6 +184,10 @@ Inductive TraceState :=
 | Unk : MemSec -> TraceState. 
 
 
+Definition getSecMem : Memory -> MemSec :=
+  fun (m : Memory) => snd (split m).
+
+
 
 
 Definition p_0 : Address := (S last_address). 
@@ -191,8 +195,6 @@ Definition r_0 : RegisterFile :=   fun r : Register => 0.
 Definition f_0 : Flags :=   fun f : Flag => false.
 
 Definition initial : Program -> State  :=   fun p : Program => ( p_0, r_0, f_0, p ).
-
-
 
 
 
