@@ -3,8 +3,8 @@ Require Import Omega.
 
 Require Import MachineModel.
 Require Import Assembler.
-Require Import OperationalSemantics.  
-
+Require Import OperationalSemantics.
+Require Import Labels.
 
 
 (*==============================================

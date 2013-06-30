@@ -10,12 +10,6 @@ Require Import Assembler.
 ==============================================*)
 Open Scope type_scope.
 
-(* State of the operational semantics 
-   TODO : why is state redefined here?
-Definition State := Address * RegisterFile * Flags * Memory.
-*)
-
-
 
 
 (* Operational rules *)
@@ -142,10 +136,6 @@ Inductive evalR : State -> State -> Prop :=
   (p, r, f, m) ---> ( p', r'', f, m')
   
   where "S '--->' S'" := (evalR S S') : type_scope.
-
-
-
-
 
 
 
