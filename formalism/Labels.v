@@ -9,10 +9,10 @@ Inductive Label :=
 | Tau : Label
 | Tick : Label
 | Write_out : Address -> Value -> Label
-| Call : RegisterFile -> Flags -> Value -> Label
-| Callback : RegisterFile -> Flags -> Value -> Label
-| Return : RegisterFile -> Flags -> Value -> Label
-| Returnback : RegisterFile -> Flags -> Value -> Label.
+| Call : RegisterFile -> Flags -> Address -> Label
+| Callback : RegisterFile -> Flags -> Address -> Label
+| Return : RegisterFile -> Flags -> Address -> Label
+| Returnback : RegisterFile -> Flags -> Address -> Label.
 
 
 
