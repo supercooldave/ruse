@@ -172,20 +172,8 @@ Qed.
 ==============================================*)
 Open Scope type_scope.
 
-(* TODO: these should be formalised in terms of lists of labels,
-   not just a single label. *)
+(* TODO: these should be formalised in terms of lists of labels, not just a single label. *)
 
-
-(* Coq problem: it loses the connection between a state in the ~~ l ~> reduction and its corresponding ~~> assumption *)
-
-
-Theorem single_trace_implies_label_init : 
-  forall (l : Label) (c : MemSec) (ts: TraceState) ,
-     (initial_trace c) -- l --> ts -> 
-     exists ctx : MemExt, exists st : State,
-       (initial c ctx) ~~ l ~> st.
-Proof.
-Admitted.
 
 
 Theorem single_trace_implies_label_general : 
@@ -194,23 +182,41 @@ Theorem single_trace_implies_label_general :
      exists ctx : MemExt, exists st : State,
        (p, r, f, (plug ctx c)) ~~ l ~> st.
 Proof.
+intros.
+inversion H. inversion H6.   (* how do i create the ctx?? *)
 Admitted.
 
 
 
-Theorem single_label_implies_trace_init : 
-  forall (ctx : MemExt) (st : State) (l : Label) (c : MemSec),
-    (initial c ctx) ~~ l ~> st -> 
-    exists ts: TraceState,
-      (initial_trace c) -- l --> ts.
-Proof.
-Admitted.
+Axiom correspond_lookups_protected :
+  forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
+    protected p ->
+    inst (lookupMS c p) i = inst (lookup (plug ctx c) p) i.
+Axiom correspond_lookups_punrotected :
+  forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
+    unprotected p ->
+    inst (lookupME ctx p) i = inst (lookup (plug ctx c) p) i.
+
+Axiom correspond_register_lookups_protected :
+  forall (p : Address) (r : RegisterFile) (rs rd : Register) (c : MemSec) (ctx : MemExt),
+    protected p ->
+    updateR r rd (lookupMS c (r rs)) = updateR r rd (lookup (plug ctx c) (r rs)).
+Axiom correspond_register_lookups_unprotected :
+  forall (p : Address) (r : RegisterFile) (rs rd : Register) (c : MemSec) (ctx : MemExt),
+    unprotected p ->
+    updateR r rd (lookupME ctx (r rs)) = updateR r rd (lookup (plug ctx c) (r rs)).
 
 
 Theorem single_label_implies_trace_general : 
   forall (ctx : MemExt) (st : State) (l : Label) (c : MemSec) (p : Address) (r : RegisterFile) (f : Flags),
     (p, r, f, plug ctx c) ~~ l ~> st -> 
     exists ts: TraceState,
-      Sta (p, r, f, c) -- l --> ts.
+      Sta (p, r, f, c) -- l --> ts .
 Proof.
+intros.
+inversion H. 
+inversion H0. 
+  destruct H10.
+  exists (x := Sta (S p, r', f, c)). apply tr_intern. apply sec_eval_movl with (rd := rd) (rs := rs). destruct H10. (* TODO : apply correspond_lookups_protected. *)
 Admitted.
+
