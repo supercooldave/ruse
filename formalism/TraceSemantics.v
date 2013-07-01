@@ -3,7 +3,6 @@ Require Import Omega.
 
 Require Import MachineModel.
 Require Import Assembler.
-Require Import OperationalSemantics.
 Require Import Labels.
 
 
@@ -15,15 +14,15 @@ Require Import Labels.
 (* Evaluation step in protected memory only*)
 Reserved Notation " T '----->' T' " (at level 50, left associativity).
 
-Inductive eval_sec : StateSec -> StateSec -> Prop :=
-| eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : MemSec) (rd rs : Register),
+Inductive eval_sec_t : StateSec -> StateSec -> Prop :=
+| sec_eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : MemSec) (rd rs : Register),
   inst (lookupMS m p) (movl rd rs) -> 
   int_jump p (S p) ->
   read_allowed p  (r rs) -> 
   r' = updateR r rd (lookupMS m (r rs)) ->  
   (p, r, f, m) -----> (S p, r', f, m)
   
-| eval_movs : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : MemSec) (rd rs : Register),
+| sec_eval_movs : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : MemSec) (rd rs : Register),
   inst (lookupMS m p) (movs rd rs) -> 
   int_jump p (S p) ->
   protected p -> 
@@ -31,19 +30,19 @@ Inductive eval_sec : StateSec -> StateSec -> Prop :=
   m' = updateMS m  (r rd) (r rs)->  
   (p, r, f, m) -----> (S p, r, f, m')
   
-| eval_movi : forall (p : Address) (i : Value) (r r' : RegisterFile) (f : Flags) (m : MemSec) (rd : Register),
+| sec_eval_movi : forall (p : Address) (i : Value) (r r' : RegisterFile) (f : Flags) (m : MemSec) (rd : Register),
   inst (lookupMS m p) (movi rd i) -> 
   int_jump p (S p) ->
   r' = updateR r rd i ->  
   (p, r, f, m) -----> (S p, r', f, m)
   
-| eval_compare : forall (p : Address) (r : RegisterFile) (f f' : Flags) (m : MemSec) (r1 r2 : Register),
+| sec_eval_compare : forall (p : Address) (r : RegisterFile) (f f' : Flags) (m : MemSec) (r1 r2 : Register),
   inst (lookupMS m p) (cmp r1 r2) -> 
   int_jump p (S p) ->
   f' = updateF (updateF f ZF (beq_nat (r r1) (r r2))) SF (blt_nat (r r1) (r r2)) ->
   (p, r, f, m) -----> (S p, r, f', m)
   
-| eval_add : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : MemSec) (rd rs : Register),
+| sec_eval_add : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : MemSec) (rd rs : Register),
   inst (lookupMS m p) (add_ rd rs) -> 
   int_jump p (S p) ->
   v = plus (r rd) (r rs)  ->
@@ -51,7 +50,8 @@ Inductive eval_sec : StateSec -> StateSec -> Prop :=
   f' = updateF f ZF (beq_nat v 0) ->
   (p, r, f, m) -----> (S p, r', f', m)
   
-| eval_sub : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : MemSec) (rd rs : Register),
+| sec_eval_sub : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : MemSec) (rd rs : Register),
+
   inst (lookupMS m p) (sub_ rd rs) -> 
   int_jump p (S p) ->
   v = minus (r rd) (r rs)  ->
@@ -59,7 +59,7 @@ Inductive eval_sec : StateSec -> StateSec -> Prop :=
   f' = updateF f ZF (beq_nat v 0) ->
   (p, r, f, m) -----> (S p, r', f', m)
   
-| eval_call : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : MemSec) (rd : Register),
+| sec_eval_call : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : MemSec) (rd : Register),
   inst (lookupMS m p) (call rd) -> 
   p' = r rd ->
   int_jump p p' ->
@@ -67,52 +67,52 @@ Inductive eval_sec : StateSec -> StateSec -> Prop :=
   m'' = updateMS m (r'' SP) (S p) ->
   (p, r, f, m) -----> (p', r'', f, m'')
   
-| eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : MemSec),
+| sec_eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : MemSec),
   inst (lookupMS m p)  ret ->
   p' =  lookupMS m (r SP) ->
   int_jump p p' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->
   (p, r, f, m) -----> (p', r'', f, m')
   
-| eval_je_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
+| sec_eval_je_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
   inst (lookupMS m p) (je ri) -> 
   f ZF = true ->
   p' = r ri ->
   int_jump p p' ->
   (p, r, f, m) -----> (p', r, f, m)
   
-| eval_je_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
+| sec_eval_je_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
   inst (lookupMS m p) (je ri) -> 
   f ZF = false ->
   p' = S p ->
   int_jump p p' ->
   (p, r, f, m) -----> (p', r, f, m)
   
-| eval_jl_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
+| sec_eval_jl_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
   inst (lookupMS m p) (jl ri) -> 
   f SF = true ->
   p' = r ri ->
   int_jump p p' ->
   (p, r, f, m) -----> (p', r, f, m)
   
-| eval_jl_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
+| sec_eval_jl_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
   inst (lookupMS m p) (jl ri) -> 
   f SF = false ->
   p' = S p ->
   int_jump p p' ->
   (p, r, f, m) -----> (p', r, f, m)
   
-| eval_jump : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (rd : Register),
+| sec_eval_jump : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (rd : Register),
   inst (lookupMS m p) (jmp rd) -> 
   p' = r rd ->
   int_jump p p' ->
   (p, r, f, m) -----> (p', r, f, m)
   
-| eval_halt : forall (p : Address) (r : RegisterFile) (f : Flags) (m : MemSec),
+| sec_eval_halt : forall (p : Address) (r : RegisterFile) (f : Flags) (m : MemSec),
   inst (lookupMS m p) halt ->
   (p, r, f, m) -----> (0, r, f, m)
 
-  where "S '----->' S'" := (eval_sec S S') : type_scope.
+  where "S '----->' S'" := (eval_sec_t S S') : type_scope.
 
 
 
@@ -164,7 +164,7 @@ where "T '--' L '-->' T'" := (trace T L T') : type_scope.
 (* reflexive-transitive closure of the trace semantics *)
 Reserved Notation " T '==' L '==>>' T' " (at level 51, left associativity).
 
-Inductive trace_semantics : TraceState -> ( list Label ) -> TraceState -> Prop :=
+Inductive trace_semantics_tr_ref : TraceState -> ( list Label ) -> TraceState -> Prop :=
 | trace_refl : forall (t : TraceState),
   t == nil ==>> t
 
@@ -177,16 +177,24 @@ Inductive trace_semantics : TraceState -> ( list Label ) -> TraceState -> Prop :
   t' == l' ==>> t''->
   t == cons l l' ==>> t''
 
-where "T '==' L '==>>' T'" := (trace_semantics T L T') : type_scope.
+where "T '==' L '==>>' T'" := (trace_semantics_tr_ref T L T') : type_scope.
+
+
+Definition Trace_semantics : MemSec -> Type :=
+  fun (c : MemSec) =>
+    forall ( st : TraceState),
+      {l : list Label | (initial_trace c) == l ==>> st}.
 
 
 
+Definition trace_equivalence := 
+  fun (p1 p2 : MemSec) =>
+    Trace_semantics p1 = Trace_semantics p2.
 
-Definition trace_equivalence : Prop := 
-  forall (p1 p2 : MemSec),  
+(* previous definition of trace equivalence
     exists p1' : TraceState, exists p2' : TraceState, 
       {l : list Label | (initial_trace p1) == l ==>> p1'} = {l : list Label | (initial_trace p2) == l ==>> p2'}.
-  
+*)
 
 
 

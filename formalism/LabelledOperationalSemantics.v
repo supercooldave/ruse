@@ -20,7 +20,7 @@ Inductive eval_same_dom : State -> State -> Prop :=
   same_jump p (S p) ->
   read_allowed p (r rs) -> 
   r' = updateR r rd (lookup m (r rs)) ->  
-    (p, r, f, m) ~~> (S p, r', f, m)
+  (p, r, f, m) ~~> (S p, r', f, m)
     
 | sd_eval_movs_prot : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
   inst (lookup m p) (movs rd rs) -> 

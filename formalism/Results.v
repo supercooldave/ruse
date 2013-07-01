@@ -6,6 +6,7 @@ Require Import Assembler.
 Require Import LabelledOperationalSemantics.
 Require Import OperationalSemantics.
 Require Import TraceSemantics.
+Require Import Labels.
 
 (* Temporary home for these *)
 
@@ -130,8 +131,6 @@ Qed.
 
 
 
->>>>>>> c137db4... Added the address in the return and fixed all related results.
-
 
 
 
@@ -142,21 +141,76 @@ Qed.
 
 (* TODO : requires interface preservation lemma *)
 Lemma trace_semantics_soundness :
-  forall p1 p2: Program, trace_equivalence p1 p2 -> contextual_equivalence p1 p2.
+  forall p1 p2: MemSec, trace_equivalence p1 p2 -> contextual_equivalence p1 p2.
 Proof.
 Admitted.
 
 (* TODO *)
 Lemma trace_semantics_completeness :
-  forall p1 p2: Program, contextual_equivalence p1 p2 -> trace_equivalence p1 p2.
+  forall p1 p2: MemSec, contextual_equivalence p1 p2 -> trace_equivalence p1 p2.
 Proof.
 Admitted.
 
 Theorem fully_abstract_trace_semantics : 
-  forall p1 p2 : Program, contextual_equivalence p1 p2 <-> trace_equivalence p1 p2.
+  forall p1 p2 : MemSec, contextual_equivalence p1 p2 <-> trace_equivalence p1 p2.
 Proof.
 intros.
 split.
 apply trace_semantics_completeness.
 apply trace_semantics_soundness.
 Qed.
+
+
+
+
+
+
+
+(*==============================================
+   Theorems  on the trace semantics 
+    and the labelled operational semantics
+==============================================*)
+Open Scope type_scope.
+
+(* TODO: these should be formalised in terms of lists of labels,
+   not just a single label. *)
+
+
+(* Coq problem: it loses the connection between a state in the ~~ l ~> reduction and its corresponding ~~> assumption *)
+
+
+Theorem single_trace_implies_label_init : 
+  forall (l : Label) (c : MemSec) (ts: TraceState) ,
+     (initial_trace c) -- l --> ts -> 
+     exists ctx : MemExt, exists st : State,
+       (initial c ctx) ~~ l ~> st.
+Proof.
+Admitted.
+
+
+Theorem single_trace_implies_label_general : 
+  forall (l : Label) (c : MemSec) (p : Address) (r : RegisterFile) (f : Flags) (ts : TraceState),
+     Sta (p, r, f, c) -- l --> ts -> 
+     exists ctx : MemExt, exists st : State,
+       (p, r, f, (plug ctx c)) ~~ l ~> st.
+Proof.
+Admitted.
+
+
+
+Theorem single_label_implies_trace_init : 
+  forall (ctx : MemExt) (st : State) (l : Label) (c : MemSec),
+    (initial c ctx) ~~ l ~> st -> 
+    exists ts: TraceState,
+      (initial_trace c) -- l --> ts.
+Proof.
+Admitted.
+
+
+Theorem single_label_implies_trace_general : 
+  forall (ctx : MemExt) (st : State) (l : Label) (c : MemSec) (p : Address) (r : RegisterFile) (f : Flags),
+    (p, r, f, plug ctx c) ~~ l ~> st -> 
+    exists ts: TraceState,
+      Sta (p, r, f, c) -- l --> ts.
+Proof.
+Admitted.
