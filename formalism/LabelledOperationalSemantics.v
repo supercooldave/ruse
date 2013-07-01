@@ -129,7 +129,7 @@ Inductive eval_same_dom : State -> State -> Prop :=
 (* rules for reduction that cross a domain, effectively creating a label *)
 Reserved Notation "S '~~' L '~>' S'" (at level 50, left associativity).
 
-Inductive eval_trace : State -> Label -> State -> Prop :=
+Inductive eval_label : State -> Label -> State -> Prop :=
 | los_eval_same : forall (s s' : State),
   s ~~> s'->
   s ~~ Tau ~> s'
@@ -180,6 +180,22 @@ Inductive eval_trace : State -> Label -> State -> Prop :=
   m' = update m (r rd) (r rs) ->  
   (p, r, f, m) ~~ Write_out (r rd) (r rs) ~> (S p, r, f, m')
 
-  where "S '~~' L '~>' S'" := (eval_trace S L S') : type_scope.
+  where "S '~~' L '~>' S'" := (eval_label S L S') : type_scope.
 
 
+Reserved Notation "S '=~=' L '=~>>' S'" (at level 50, left associativity).
+
+Inductive eval_trace : State -> list Label -> State -> Prop :=
+| lbl_trace_refl : forall (t : State),
+  t =~= nil =~>> t
+
+| trace_tau : forall (t t' : State),
+  t ~~ Tau ~> t' ->
+  t =~= nil =~>> t'
+
+| trace_trans : forall (t t' t'' : State) (l : Label) (l' : list Label),
+  t ~~ l ~> t' ->
+  t' =~= l' =~>> t''->
+  t =~= cons l l' =~>> t''
+
+where "T '=~=' L '=~>>' T'" := (eval_trace T L T') : type_scope.

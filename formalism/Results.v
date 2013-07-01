@@ -175,6 +175,30 @@ Open Scope type_scope.
 (* TODO: these should be formalised in terms of lists of labels, not just a single label. *)
 
 
+Axiom correspond_lookups_protected :
+  forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
+    protected p ->
+    (inst (lookupMS c p) i <-> inst (lookup (plug ctx c) p) i).
+Axiom correspond_lookups_punrotected :
+  forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
+    unprotected p ->
+    (inst (lookupME ctx p) i <-> inst (lookup (plug ctx c) p) i).
+
+Axiom correspond_register_lookups_protected :
+  forall (p : Address) (r : RegisterFile) (rs rd : Register) (c : MemSec) (ctx : MemExt),
+    protected p ->
+    (updateR r rd (lookupMS c (r rs)) = updateR r rd (lookup (plug ctx c) (r rs))).
+Axiom correspond_register_lookups_unprotected :
+  forall (p : Address) (r : RegisterFile) (rs rd : Register) (c : MemSec) (ctx : MemExt),
+    unprotected p ->
+    (updateR r rd (lookupME ctx (r rs)) = updateR r rd (lookup (plug ctx c) (r rs))).
+
+
+
+(* here is a bunch of FALSE theorems, which are only temporarly Admitted.
+   *)
+
+
 
 Theorem single_trace_implies_label_general : 
   forall (l : Label) (c : MemSec) (p : Address) (r : RegisterFile) (f : Flags) (ts : TraceState),
@@ -186,37 +210,31 @@ intros.
 inversion H. inversion H6.   (* how do i create the ctx?? *)
 Admitted.
 
-
-
-Axiom correspond_lookups_protected :
-  forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
-    protected p ->
-    inst (lookupMS c p) i = inst (lookup (plug ctx c) p) i.
-Axiom correspond_lookups_punrotected :
-  forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
-    unprotected p ->
-    inst (lookupME ctx p) i = inst (lookup (plug ctx c) p) i.
-
-Axiom correspond_register_lookups_protected :
-  forall (p : Address) (r : RegisterFile) (rs rd : Register) (c : MemSec) (ctx : MemExt),
-    protected p ->
-    updateR r rd (lookupMS c (r rs)) = updateR r rd (lookup (plug ctx c) (r rs)).
-Axiom correspond_register_lookups_unprotected :
-  forall (p : Address) (r : RegisterFile) (rs rd : Register) (c : MemSec) (ctx : MemExt),
-    unprotected p ->
-    updateR r rd (lookupME ctx (r rs)) = updateR r rd (lookup (plug ctx c) (r rs)).
-
-
-Theorem single_label_implies_trace_general : 
+Theorem single_label_implies_trace_general_FAILED : 
   forall (ctx : MemExt) (st : State) (l : Label) (c : MemSec) (p : Address) (r : RegisterFile) (f : Flags),
     (p, r, f, plug ctx c) ~~ l ~> st -> 
     exists ts: TraceState,
-      Sta (p, r, f, c) -- l --> ts .
+     (( Sta (p, r, f, c) -- l --> ts) \/ (Unk c) -- l --> ts).
 Proof.
 intros.
 inversion H. 
 inversion H0. 
   destruct H10.
-  exists (x := Sta (S p, r', f, c)). apply tr_intern. apply sec_eval_movl with (rd := rd) (rs := rs). destruct H10. (* TODO : apply correspond_lookups_protected. *)
+  exists (x := Sta (S p, r', f, c)). apply or_introl. apply tr_intern. apply sec_eval_movl with (rd := rd) (rs := rs). destruct H10. subst.
+   rewrite (correspond_lookups_protected p (movl rd rs) c ctx H10); trivial; auto. auto. auto.
+   destruct H10. rewrite (correspond_register_lookups_protected p r rs rd c ctx H10); trivial. auto.
+  admit. (* this case cannot be true! there is no Tau for unprotected code in the trace semantics *)
 Admitted.
 
+
+Theorem single_label_implies_trace_general : 
+  forall (ctx : MemExt) (st : State) (l : Label) (c : MemSec) (p : Address) (r : RegisterFile) (f : Flags),
+    protected p ->
+    (p, r, f, plug ctx c) ~~ l ~> st -> 
+    exists ts: TraceState,
+     (( Sta (p, r, f, c) -- l --> ts)).
+Proof.
+intros ctx st l c p r f P_prot H. inversion H.
+  admit.
+  exists (x := Unk c). rewrite <- H7 in H. rewrite <- H8 in H. inversion H. subst. 
+Admitted.
