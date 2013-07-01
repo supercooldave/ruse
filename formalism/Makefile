@@ -38,6 +38,9 @@ TraceSemantics: Labels
 Labels: Assembler
 	$(COQC) Labels.v
 
+Results: 
+	$(COQC) Results.v
+
 # Call “make clean” to remove all compiled files:
 clean:
 	rm -rf *.vo *.glob
