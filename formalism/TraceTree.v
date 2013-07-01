@@ -1,4 +1,13 @@
 
+Require Import List.
+Require Import Labels.
+Require Import MachineModel.
+
+Require Import Coq.FSets.FMaps.
+Require Export FMapAVL.
+Require Export Coq.Structures.OrderedTypeEx.
+
+
 (* This serves as an intermediate data structure between a trace from the 
    trace semantics and the code that implements the context capable of
    producing the trace. *)
@@ -31,3 +40,42 @@
 
 (* See, for instance, Martin Steffen's Habilitation thesis for a similar, if not
    identical approach. *)
+
+
+
+Module M := FMapAVL.Make(Nat_as_OT).
+
+Definition LabelMatrix := M.t (M.t Label).
+Definition empty : LabelMatrix := M.empty (M.t Label).
+(* Convert 
+Definition find k (m: map_nat_nat) := M.find k m.
+*)
+
+Definition update (m: LabelMatrix) (a : Address) (step : nat) (l : Label) :=
+  match M.find a m with
+  | None => M.add a (M.add step l (M.empty Label)) m
+  | Some n => M.add a (M.add step l n) m
+  end.
+  
+
+Fixpoint build_help(m : LabelMatrix) (trace : list Label) (step : nat) :=
+    match trace with
+      | nil => m
+      | l :: trace' =>
+        (match l with
+        | Tau => build_help m trace' (S step) 
+        | Tick => build_help m trace' (S step) 
+        | Write_out a v  => build_help (update m a step l) trace' (S step)
+        | Call r f a     => build_help (update m a step l) trace' (S step)
+        | Callback r f a => build_help (update m a step l) trace' (S step)
+        | Return r f a   => build_help (update m a step l) trace' (S step)
+        | Returnback r f a => build_help (update m a step l) trace' (S step)
+          end)
+    end.
+
+Definition build (trace : list Label) : LabelMatrix 
+  := build_help empty trace 0.
+
+
+
+
