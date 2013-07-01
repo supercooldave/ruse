@@ -12,44 +12,151 @@ Require Import Labels.
 ==============================================*)
 
 
+(* Evaluation step in protected memory only*)
+Reserved Notation " T '----->' T' " (at level 50, left associativity).
+
+Inductive eval_sec : StateSec -> StateSec -> Prop :=
+| eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : MemSec) (rd rs : Register),
+  inst (lookupMS m p) (movl rd rs) -> 
+  int_jump p (S p) ->
+  read_allowed p  (r rs) -> 
+  r' = updateR r rd (lookupMS m (r rs)) ->  
+  (p, r, f, m) -----> (S p, r', f, m)
+  
+| eval_movs : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : MemSec) (rd rs : Register),
+  inst (lookupMS m p) (movs rd rs) -> 
+  int_jump p (S p) ->
+  protected p -> 
+  data_segment (r rd) ->
+  m' = updateMS m  (r rd) (r rs)->  
+  (p, r, f, m) -----> (S p, r, f, m')
+  
+| eval_movi : forall (p : Address) (i : Value) (r r' : RegisterFile) (f : Flags) (m : MemSec) (rd : Register),
+  inst (lookupMS m p) (movi rd i) -> 
+  int_jump p (S p) ->
+  r' = updateR r rd i ->  
+  (p, r, f, m) -----> (S p, r', f, m)
+  
+| eval_compare : forall (p : Address) (r : RegisterFile) (f f' : Flags) (m : MemSec) (r1 r2 : Register),
+  inst (lookupMS m p) (cmp r1 r2) -> 
+  int_jump p (S p) ->
+  f' = updateF (updateF f ZF (beq_nat (r r1) (r r2))) SF (blt_nat (r r1) (r r2)) ->
+  (p, r, f, m) -----> (S p, r, f', m)
+  
+| eval_add : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : MemSec) (rd rs : Register),
+  inst (lookupMS m p) (add_ rd rs) -> 
+  int_jump p (S p) ->
+  v = plus (r rd) (r rs)  ->
+  r' = updateR r rd v ->
+  f' = updateF f ZF (beq_nat v 0) ->
+  (p, r, f, m) -----> (S p, r', f', m)
+  
+| eval_sub : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : MemSec) (rd rs : Register),
+  inst (lookupMS m p) (sub_ rd rs) -> 
+  int_jump p (S p) ->
+  v = minus (r rd) (r rs)  ->
+  r' = updateR r rd v ->
+  f' = updateF f ZF (beq_nat v 0) ->
+  (p, r, f, m) -----> (S p, r', f', m)
+  
+| eval_call : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : MemSec) (rd : Register),
+  inst (lookupMS m p) (call rd) -> 
+  p' = r rd ->
+  int_jump p p' ->
+  r'' = updateR r' SP (S (r' SP)) ->
+  m'' = updateMS m (r'' SP) (S p) ->
+  (p, r, f, m) -----> (p', r'', f, m'')
+  
+| eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : MemSec),
+  inst (lookupMS m p)  ret ->
+  p' =  lookupMS m (r SP) ->
+  int_jump p p' ->
+  r'' = updateR r' SP (minus (r' SP) 1) ->
+  (p, r, f, m) -----> (p', r'', f, m')
+  
+| eval_je_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
+  inst (lookupMS m p) (je ri) -> 
+  f ZF = true ->
+  p' = r ri ->
+  int_jump p p' ->
+  (p, r, f, m) -----> (p', r, f, m)
+  
+| eval_je_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
+  inst (lookupMS m p) (je ri) -> 
+  f ZF = false ->
+  p' = S p ->
+  int_jump p p' ->
+  (p, r, f, m) -----> (p', r, f, m)
+  
+| eval_jl_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
+  inst (lookupMS m p) (jl ri) -> 
+  f SF = true ->
+  p' = r ri ->
+  int_jump p p' ->
+  (p, r, f, m) -----> (p', r, f, m)
+  
+| eval_jl_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (ri : Register),
+  inst (lookupMS m p) (jl ri) -> 
+  f SF = false ->
+  p' = S p ->
+  int_jump p p' ->
+  (p, r, f, m) -----> (p', r, f, m)
+  
+| eval_jump : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : MemSec) (rd : Register),
+  inst (lookupMS m p) (jmp rd) -> 
+  p' = r rd ->
+  int_jump p p' ->
+  (p, r, f, m) -----> (p', r, f, m)
+  
+| eval_halt : forall (p : Address) (r : RegisterFile) (f : Flags) (m : MemSec),
+  inst (lookupMS m p) halt ->
+  (p, r, f, m) -----> (0, r, f, m)
+
+  where "S '----->' S'" := (eval_sec S S') : type_scope.
+
+
+
+
+
+
 (* Trace semantics *)
 Reserved Notation " T '--' L '-->' T' " (at level 50, left associativity).
 
 Inductive trace : TraceState -> Label -> TraceState -> Prop :=
-| tr_intern : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
-  (p, r, f, m) ---> (p', r', f', m') ->
+| tr_intern : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': MemSec),
+  (p, r, f, m) -----> (p', r', f', m') ->
   int_jump p p' ->
-  Sta (p, r, f, getSecMem m) -- Tau --> Sta (p', r', f', getSecMem m')
+  Sta (p, r, f, m) -- Tau --> Sta (p', r', f', m')
 
-| tr_internal_tick : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
-  (p, r, f, m) ---> (p', r', f', m') ->
+| tr_internal_tick : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': MemSec),
+  (p, r, f, m) -----> (p', r', f', m') ->
   stuck_state p' m' ->
-  Sta (p, r, f, getSecMem m) -- Tick --> Sta (p', r', f', getSecMem m')
+  Sta (p, r, f, m) -- Tick --> Sta (p', r', f', m')
 
-| tr_writeout : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd rs : Register),
+| tr_writeout : forall (p : Address) (r : RegisterFile) (f: Flags) (m: MemSec) (rd rs : Register),
   int_jump p (S p) ->
-  inst (lookup m p ) (movs rd rs)->
+  inst (lookupMS m p ) (movs rd rs)->
   unprotected (r rd) ->
-  Sta (p, r, f, getSecMem m) --  Write_out (r rd) (r rs) --> Sta ( (S p), r, f, getSecMem m) 
+  Sta (p, r, f, m) --  Write_out (r rd) (r rs) --> Sta ( (S p), r, f, m) 
 
-| tr_call : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
+| tr_call : forall (p : Address) (r : RegisterFile) (f: Flags) (m: MemSec),
   entrypoint p ->
-  (Unk (getSecMem m)) -- Call r f p  --> Sta (p, r, f, getSecMem m)
+  (Unk m) -- Call r f p  --> Sta (p, r, f, m)
 
-| tr_returnback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory),
+| tr_returnback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: MemSec),
   return_entrypoint p ->
-  (Unk (getSecMem m)) -- Returnback r f p --> Sta (p, r, f, getSecMem m)
+  (Unk m) -- Returnback r f p --> Sta (p, r, f, m)
 
-| tr_callback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: Memory) (rd : Register),
-  inst (lookup m p) (call rd) ->
-  exit_jump p (lookup m (r rd)) ->
-  Sta (p, r, f, getSecMem m) -- Callback r f (lookup m (r rd)) --> (Unk (getSecMem m))
+| tr_callback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: MemSec) (rd : Register),
+  inst (lookupMS m p) (call rd) ->
+  exit_jump p (lookupMS m (r rd)) ->
+  Sta (p, r, f, m) -- Callback r f (lookupMS m (r rd)) --> (Unk m)
 
-| tr_return : forall (p p' : Address) (r : RegisterFile) (f: Flags) (m: Memory) (sp : Register),
-  p' = lookup m (r sp) ->
+| tr_return : forall (p p' : Address) (r : RegisterFile) (f: Flags) (m: MemSec) (sp : Register),
+  p' = lookupMS m (r sp) ->
   exit_jump p p'->
-  inst (lookup m p) (ret) ->
-  Sta (p, r, f, getSecMem m) -- Return r f p' --> (Unk (getSecMem m))
+  inst (lookupMS m p) (ret) ->
+  Sta (p, r, f, m) -- Return r f p' --> (Unk m)
 
 where "T '--' L '-->' T'" := (trace T L T') : type_scope.
 

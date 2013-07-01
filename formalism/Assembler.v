@@ -34,8 +34,8 @@ Axiom inst_no_zero : ~ exists i : Instruction, inst 0 i.
 
 
 (* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
-Definition stuck_state ( p: Address ) ( m : Memory ) :=  
-  p < 1 \/ forall i:Instruction, ~ inst (lookup m p) (i) .
+Definition stuck_state ( p: Address ) ( m : MemSec ) :=  
+  p < 1 \/ forall i:Instruction, ~ inst (lookupMS m p) (i) .
 
 
 

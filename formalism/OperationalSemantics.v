@@ -159,7 +159,7 @@ Definition diverge (sta : State) := forall n, anysteps n sta.
 
 
 
-Definition contextual_equivalence : MemSec -> MemSec -> Prop := fun p1 p2 : MemSec => 
+Definition contextual_equivalence : Prop := forall (p1 p2 : MemSec),
   forall c : MemExt, compatible p1 c -> compatible p2 c ->
     ( (diverge (initial p1 c)) <-> (diverge (initial p2 c)) ).
   

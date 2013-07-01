@@ -160,10 +160,11 @@ Definition MemExt := { m : Memory | forall (a : Address), domain m a <-> ( a = 0
 
 Parameter domainMS : MemSec -> Address -> Prop.
 Parameter domainME : MemExt -> Address -> Prop.
+Parameter lookupMS : MemSec -> Address -> Value.
+Parameter lookupME : MemExt -> Address -> Value.
+Parameter updateMS : MemSec -> Address -> Value -> MemSec.
+Parameter updateME : MemExt -> Address -> Value -> MemExt.
 
-(*
-Definition Program := MemSec.
-Definition Context := MemExt.*)
 
 Definition compatible := fun (p : MemSec) (c : MemExt) =>
   forall (a : Address), ( (domainMS p a) <-> (~ domainME c a) /\ (domainME c a) <-> (~ domainMS p a)).
