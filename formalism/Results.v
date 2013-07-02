@@ -1,11 +1,11 @@
 Require Import List.
 Require Import Omega.
 
-Require Import MachineModel.
 Require Import Assembler.
-Require Import LabelledOperationalSemantics.
-Require Import OperationalSemantics.
+Require Import MachineModel.
 Require Import TraceSemantics.
+Require Import OperationalSemantics.
+Require Import LabelledOperationalSemantics.
 Require Import Labels.
 
 (* Temporary home for these *)
@@ -20,7 +20,7 @@ Lemma labelled_semantics_implies_original :
     s1 ~~ l ~> s2 ->
     s1 ---> s2.
 Proof.
-intros.
+intros. 
 destruct H. destruct H; auto. 
 apply eval_movl with (rs := rs) (rd := rd); auto.
 apply eval_movs with (rs := rs) (rd := rd); auto.
@@ -57,15 +57,6 @@ destruct H.
   right. assert (protected p \/ unprotected p). 
      assert (p = 0 \/ protected p \/ unprotected p) by apply (protected_unprotected_coverage p). intuition. intuition.
 Qed.
-
-Lemma call_address : forall (p p' : Address),
-  write_allowed p p' ->
-  (protected p /\ data_segment p') \/
-  (unprotected p /\ unprotected p') \/
-  (protected p /\ unprotected p').
-Proof.
-Admitted.
-
 
 
 Lemma original_semantics_implies_labelled :
@@ -112,17 +103,6 @@ apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_jump with (rd
 apply ex_intro with (x := Tau). apply los_eval_same. apply sd_eval_halt; auto.
 exists (x := Callback r f p'). apply los_eval_callback with (r' := r') (r'' := r'') (m' := m')  (rd := rd); auto.
 exists (x := Returnback r f p'). apply los_eval_retback with (r' := r'); auto.
-Qed.
-
-
-Theorem fully_abstract_labelled_operational_semantics : 
-  forall s1 s2 : State,
-    ((s1 ---> s2 -> exists l : Label, s1 ~~ l ~> s2) /\ (forall (l : Label), s1 ~~ l ~> s2 -> s1 ---> s2)).
-Proof.
-intros.
-split.
-apply original_semantics_implies_labelled.
-apply labelled_semantics_implies_original.
 Qed.
 
 

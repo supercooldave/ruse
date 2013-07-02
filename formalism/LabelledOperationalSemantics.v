@@ -189,13 +189,18 @@ Inductive eval_trace : State -> list Label -> State -> Prop :=
 | lbl_trace_refl : forall (t : State),
   t =~= nil =~>> t
 
-| trace_tau : forall (t t' : State),
+| lbl_trace_tau : forall (t t' : State),
   t ~~ Tau ~> t' ->
   t =~= nil =~>> t'
 
-| trace_trans : forall (t t' t'' : State) (l : Label) (l' : list Label),
+| lbl_trace_trans : forall (t t' t'' : State) (l : Label) (l' : list Label),
   t ~~ l ~> t' ->
   t' =~= l' =~>> t''->
   t =~= cons l l' =~>> t''
+
+| lbl_trace_internal_tick : forall (p p' : Address) (r r' : RegisterFile) (f f': Flags) (m m': Memory),
+  (p, r, f, m) ~~> (p', r', f', m') ->
+  stuck_state p' (getSecMem m') ->
+  (p, r, f, m) =~= cons Tick nil =~>> (p', r', f', m')
 
 where "T '=~=' L '=~>>' T'" := (eval_trace T L T') : type_scope.
