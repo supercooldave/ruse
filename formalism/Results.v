@@ -139,28 +139,6 @@ Qed.
    Theorems  on the trace semantics
 ==============================================*)
 
-(* TODO : requires interface preservation lemma *)
-Lemma trace_semantics_soundness :
-  forall p1 p2: MemSec, trace_equivalence p1 p2 -> contextual_equivalence p1 p2.
-Proof.
-Admitted.
-
-(* TODO *)
-Lemma trace_semantics_completeness :
-  forall p1 p2: MemSec, contextual_equivalence p1 p2 -> trace_equivalence p1 p2.
-Proof.
-Admitted.
-
-Theorem fully_abstract_trace_semantics : 
-  forall p1 p2 : MemSec, contextual_equivalence p1 p2 <-> trace_equivalence p1 p2.
-Proof.
-intros.
-split.
-apply trace_semantics_completeness.
-apply trace_semantics_soundness.
-Qed.
-
-
 
 
 
@@ -173,7 +151,6 @@ Qed.
 Open Scope type_scope.
 
 (* TODO: these should be formalised in terms of lists of labels, not just a single label. *)
-
 
 Axiom correspond_lookups_protected :
   forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
@@ -195,7 +172,27 @@ Axiom correspond_register_lookups_unprotected :
 
 
 
-(* here is a bunch of FALSE theorems, which are only temporarly Admitted.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(* here is a bunch of FALSE theorems, which are only temporarly Admitted
+   and which i use to remember how to do things in Coq in certain cases
    *)
 
 

@@ -5,7 +5,7 @@ Require Import MachineModel.
 
 Require Import Coq.FSets.FMaps.
 Require Export FMapAVL.
-Require Export Coq.Structures.OrderedTypeEx.
+(*Require Export Coq.Structures.OrderedTypeEx.
 
 
 (* This serves as an intermediate data structure between a trace from the 

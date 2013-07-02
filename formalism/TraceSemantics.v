@@ -180,21 +180,8 @@ Inductive trace_semantics_tr_ref : TraceState -> ( list Label ) -> TraceState ->
 where "T '==' L '==>>' T'" := (trace_semantics_tr_ref T L T') : type_scope.
 
 
-Definition Trace_semantics : MemSec -> Type :=
-  fun (c : MemSec) =>
-    forall ( st : TraceState),
-      {l : list Label | (initial_trace c) == l ==>> st}.
 
 
-
-Definition trace_equivalence := 
-  fun (p1 p2 : MemSec) =>
-    Trace_semantics p1 = Trace_semantics p2.
-
-(* previous definition of trace equivalence
-    exists p1' : TraceState, exists p2' : TraceState, 
-      {l : list Label | (initial_trace p1) == l ==>> p1'} = {l : list Label | (initial_trace p2) == l ==>> p2'}.
-*)
 
 
 
