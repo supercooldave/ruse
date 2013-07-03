@@ -1,0 +1,6 @@
+[submodule "implementation/RUSE"]
+	path = implementation/RUSE
+	url = ssh://git@dnetcode.cs.kuleuven.be:2222/ruse.git
+[submodule "abstract-machine/RUSE"]
+	path = abstract-machine/RUSE
+	url = ssh://git@dnetcode.cs.kuleuven.be:2222/ruse.git
