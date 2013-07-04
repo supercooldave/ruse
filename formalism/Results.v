@@ -261,3 +261,26 @@ intros ctx st l c p r f P_prot H. inversion H.
   admit.
   exists (x := Unk c). rewrite <- H7 in H. rewrite <- H8 in H. inversion H. subst. 
 Admitted.
+
+
+
+Reserved Notation " L '~~~' L' " (at level 50, left associativity).
+
+Inductive weak_equiv : list Label -> list Label -> Prop :=
+| weak_tau_l : forall (ll ll' : list Label), ll ~~~ ll' -> (Tau :: ll) ~~~ ll'
+| weak_tau_r : forall (ll ll' : list Label), ll ~~~ ll' -> ll ~~~ (Tau :: ll')
+| weak_tick : (Tick :: nil) ~~~ (Tick :: nil)
+| weak_other : forall (l : Label) (ll ll' : list Label), l <> Tick -> ll ~~~ ll' -> (l :: ll) ~~~ (l :: ll')
+
+where "L '~~~' L'" := (weak_equiv L L') : type_scope.
+
+Parameter get_trace_state : State -> TraceState.
+
+Theorem dave_label_implies_trace :  
+  forall (st st' : State) (c : TraceState) (l : list Label),
+    c = get_trace_state st ->
+    st  =~= l =~>> st' ->
+    exists l', l ~~~ l' /\
+    exists c', c' = get_trace_state st /\ c == l' ==>> c'.
+Proof.
+Admitted.
