@@ -154,16 +154,62 @@ Axiom correspond_register_lookups_unprotected :
 
 
 
+Axiom unknown_produces_nil :
+  forall (c: MemSec), (Unk c) == nil ==>> (Unk c).
 
 
 
-
-
-
-
-
-
-
+Theorem labels_in_labelled_imply_labels_in_trace : 
+  forall (p : Address) (r : RegisterFile) (f : Flags) (ctx : MemExt) (c : MemSec) (l : list Label) (st : State) ,
+    (p, r, f, plug ctx c) =~= l =~>> st -> 
+    exists ts: TraceState,
+     (( Sta (p, r, f, c) == l ==>> ts) \/ (Unk c) == l ==>> ts).
+Proof.
+intros p r f ctx c l st H.
+induction H. (* do not induce on l as it would bring forth a case analysis on all actions *)
+(*base case : 0 reduction step *)
+exists (x := Sta (p,r,f,c)). apply or_introl. apply trace_refl.
+(*inductive case: tau action*)
+inversion H. inversion H0. 
+  (*case analysis on all possible Taus*)
+    (*movl*)
+    inversion H4.
+    (*internal Tau*)
+    admit.
+    (*external Tau*)
+    exists (x := (Unk c)). apply or_intror. apply unknown_produces_nil.
+    (*movs write in prot*)
+    admit.
+    (*movs write in unprot *)
+    admit.
+    (*movi*)
+    admit.
+    (*cmp*)
+    admit.
+    (*add*)
+    admit.
+    (*sub*)
+    admit.
+    (*call same jump*)
+    admit.
+    (*ret same jump*)
+    admit.
+    (*je true*)
+    admit.
+    (*je false*)
+    admit.
+    (*jl true*)
+    admit.
+    (*jl false*)
+    admit.
+    (*jmp*)
+    admit.
+    (*halt*)
+    admit.
+(*inductive case: one action followed by a list*)
+admit.
+(*inductive case: tick*)
+exists (x := Sta (p',r',f',getSecMem m')). 
 
 
 
