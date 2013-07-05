@@ -152,8 +152,7 @@ Inductive trace : TraceState -> Label -> TraceState -> Prop :=
   p' = lookupMS m (r rd) ->
   exit_jump p p' ->
   m' = update m (r' SP) (S p)->
-  r'' = updateR r' SP (S (r' SP)) ->
-  m'' = (update m (r'' SP) (address_returnback_entry_point)) ->
+(*  r'' = updateR r' SP (S (r' SP)) ->  ?? should this be on the traces? *)
   Sta (p, r, f, m) -- Callback r f p' --> (Unk m')
 
 | tr_return : forall (p p' : Address) (r : RegisterFile) (f: Flags) (m: MemSec) (sp : Register),
