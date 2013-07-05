@@ -149,8 +149,12 @@ Inductive trace : TraceState -> Label -> TraceState -> Prop :=
 
 | tr_callback : forall (p : Address) (r : RegisterFile) (f: Flags) (m: MemSec) (rd : Register),
   inst (lookupMS m p) (call rd) ->
-  exit_jump p (lookupMS m (r rd)) ->
-  Sta (p, r, f, m) -- Callback r f (lookupMS m (r rd)) --> (Unk m)
+  p' = lookupMS m (r rd) ->
+  exit_jump p p' ->
+  m' = update m (r' SP) (S p)->
+  r'' = updateR r' SP (S (r' SP)) ->
+  m'' = (update m (r'' SP) (address_returnback_entry_point)) ->
+  Sta (p, r, f, m) -- Callback r f p' --> (Unk m')
 
 | tr_return : forall (p p' : Address) (r : RegisterFile) (f: Flags) (m: MemSec) (sp : Register),
   p' = lookupMS m (r sp) ->
@@ -180,6 +184,7 @@ Inductive trace_semantics_tr_ref : TraceState -> ( list Label ) -> TraceState ->
 
 where "T '==' L '==>>' T'" := (trace_semantics_tr_ref T L T') : type_scope.
 
+Check trace_semantics_tr_ref_ind.
 
 
 

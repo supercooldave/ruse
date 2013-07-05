@@ -428,6 +428,7 @@ inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
   (*case Callback*)
   exists (x := Unk c). apply or_introl. destruct H6.
    rewrite <- (correspond_lookups_protected p (call rd) c ctx H6) in H4. 
+   
   admit.
   (*case Return*)
   admit.
@@ -435,14 +436,61 @@ inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
   admit.
   (*case Writeout*)
   admit.
-(*inductive case: tick*)
-  exists (x := Sta (p',r',f',getSecMem m')). apply or_introl. apply trace_trans with (t' := Sta (p',r',f', getSecMem m')). 
-    admit. (*this is really trivial SHIT*)
-    apply tr_internal_tick. 
-    (*case analysis on all steps that produce a tick*)
-    (* inversion H. most cases with contradiction; halt with sth that is not contradiction*) admit.
-    auto.
-    apply trace_refl.
+Qed.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Theorem example_induction : 
+  forall (p : Address) (r : RegisterFile) (f : Flags) (ctx : MemExt) (c : MemSec) (l : list Label) (st : State) ,
+    (p, r, f, plug ctx c) =~= l =~>> st -> 
+    exists ts: TraceState,
+     (( Sta (p, r, f, c) == l ==>> ts) \/ (Unk c) == l ==>> ts).
+Proof. 
+intros p r f ctx c l st H. 
+
+
+induction H as [Ha0 | Ha2 | Ha3 | Ha4]. 
+
+admit.
+admit.
+
+(* here the IH has a wrong binding for t' *)
+
+Admitted.
+
+
+
+
+
+
 
 
 
