@@ -60,7 +60,7 @@ Inductive evalR : State -> State -> Prop :=
   
 | eval_call : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
   inst (lookup m p) (call rd) -> 
-  p' = r rd ->
+  p' = lookup m (r rd) ->
   (same_jump p p' \/ entry_jump p p') ->
   (*valid_jump p p' ->*)
   set_stack p r m p' r' m' ->
@@ -117,7 +117,7 @@ Inductive evalR : State -> State -> Prop :=
 
 | eval_call_in_to_out : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
   inst (lookup m p) (call rd) -> 
-  p' = r rd ->
+  p' = lookup m (r rd) ->
   exit_jump p p' ->
   r' = updateR r SP (S (r SP)) ->
   m' = update m (r' SP) (S p)->

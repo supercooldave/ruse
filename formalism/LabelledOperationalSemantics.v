@@ -70,7 +70,7 @@ Inductive eval_same_dom : State -> State -> Prop :=
   
 | sd_eval_call : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
   inst (lookup m p) (call rd) -> 
-  p' = r rd ->
+  p' = lookup m (r rd) ->
   same_jump p p' ->  (*only jumps between the same domains*)
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (S (r' SP)) ->
@@ -136,16 +136,16 @@ Inductive eval_label : State -> Label -> State -> Prop :=
 
 | los_eval_call : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
   inst (lookup m p) (call rd) -> 
-  p' = r rd ->
+  p' = lookup m (r rd) ->
   entry_jump p p' ->  
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (S (r' SP)) ->
   m'' = update m (r'' SP) (S p) ->
-  (p, r, f, m) ~~ Call r f p' ~> (p', r'', f, m'')
+  (p, r, f, m) ~~ Call r'' f p' ~> (p', r'', f, m'')
 
 | los_eval_callback : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
   inst (lookup m p) (call rd) -> 
-  p' = r rd ->
+  p' = lookup m (r rd) ->
   exit_jump p p' ->  
   r' = updateR r SP (S (r SP)) ->
   m' = update m (r' SP) (S p)->
