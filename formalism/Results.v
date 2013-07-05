@@ -29,14 +29,15 @@ Open Scope type_scope.
 
 (* TODO: these should be formalised in terms of lists of labels, not just a single label. *)
 
-Axiom correspond_lookups_protected :
-  forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
+
+Axiom correspond_lookups_protected_val :
+  forall (p : Address) (c : MemSec) (ctx : MemExt),
     protected p ->
-    (inst (lookupMS c p) i <-> inst (lookup (plug ctx c) p) i).
+    ((lookupMS c p) = (lookup (plug ctx c) p)).
 Axiom correspond_lookups_punrotected :
-  forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
+  forall (p : Address) (c : MemSec) (ctx : MemExt),
     unprotected p ->
-    (inst (lookupME ctx p) i <-> inst (lookup (plug ctx c) p) i).
+    ( (lookupME ctx p) = (lookup (plug ctx c) p)).
 
 Axiom correspond_register_lookups_protected :
   forall (p : Address) (r : RegisterFile) (rd : Register) (c : MemSec) (ctx : MemExt) (v : Value),
@@ -57,6 +58,10 @@ Axiom update_protected :
     m = update (plug ctx c) (a) (v)-> 
     getSecMem m = updateMS c a v.
 
+Axiom protected_pc_protected_sp : forall (a : Address) (r : RegisterFile),
+  protected a ->
+  protected (r SP).
+
 Axiom unknown_taus : 
   forall (c : MemSec),
     Unk c -- Tau --> Unk c.
@@ -76,7 +81,7 @@ inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
     inversion H10 as [Hin | Hex].
       (*internal Tau*) 
       exists (x := Sta ((S p),r', f0, c)). apply or_introl. apply tr_intern. inversion Hin. 
-       rewrite <- (correspond_lookups_protected p (movl rd rs) c ctx H13) in H8. 
+       rewrite <- (correspond_lookups_protected_val p  c ctx H13) in H8. 
        rewrite <- (correspond_register_lookups_protected p r rd c ctx (r rs) H13) in H12. 
        rewrite H6.
        apply sec_eval_movl with (rs := rs) (rd := rd); auto. apply Hin.
@@ -84,7 +89,7 @@ inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
       exists (x := (Unk c)). apply or_intror. apply unknown_taus.
     (*movs write in prot*) 
     exists ( x := Sta ((S p), r, f, getSecMem m')). apply or_introl. apply tr_intern.
-     rewrite <- (correspond_lookups_protected p (movs rd rs) c ctx H12) in H8. 
+     rewrite <- (correspond_lookups_protected_val p c ctx H12) in H8. 
      rewrite (update_protected (r rd) ctx c (r rs) m' H13 H14).  
      inversion H9.
        (*internal jump*)
@@ -105,7 +110,7 @@ inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
     inversion H10 as [Hin | Hex].
       (*internal*)
       exists (x := Sta ((S p), r', f, c)). apply or_introl. apply tr_intern. inversion Hin.
-       rewrite <- (correspond_lookups_protected p (movi rd i) c ctx H12) in H9. 
+       rewrite <- (correspond_lookups_protected_val p c ctx H12) in H9. 
        apply sec_eval_movi with (rd := rd) ( i := i); auto. apply Hin.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply unknown_taus.
@@ -113,7 +118,7 @@ inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
     inversion H10 as [Hin | Hex].
       (*internal*)
       exists (x := Sta ((S p), r, f', c)). apply or_introl. apply tr_intern. inversion Hin.
-       rewrite <- (correspond_lookups_protected p (cmp r1 r2) c ctx H12) in H9. 
+       rewrite <- (correspond_lookups_protected_val p  c ctx H12) in H9. 
        apply sec_eval_compare with (r1 := r1) (r2 := r2); auto. apply Hin.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply unknown_taus.
@@ -178,14 +183,21 @@ inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
   exists (x := Sta (p', r'', f, c)). apply or_intror.  apply tr_call. destruct H6; auto.    
   (*case Callback*)
   exists (x := Unk (updateMS c (r' SP) (S p))). apply or_introl. destruct H6.
-   rewrite <- (correspond_lookups_protected p (call rd) c ctx H6) in H4. 
+   rewrite <- (correspond_lookups_protected_val p c ctx H6) in H4. 
    apply tr_callback with (r' := r') (rd := rd); auto. apply conj; auto.
   (*case Return*)
-  admit.
+  exists (x := Unk c). apply or_introl. destruct H8.
+   rewrite <- (correspond_lookups_protected_val p c ctx H8) in H4. apply tr_return with (sp := SP) ; auto. 
+   assert (protected (r SP)). apply protected_pc_protected_sp with (a := p); auto.
+   rewrite (correspond_lookups_protected_val (r SP) c ctx H12); auto. apply conj. apply H8. apply H11.
   (*case Returnback*)
-  admit.
+  exists (x := Sta (p', r'', f, c)). apply or_intror. apply tr_returnback. apply H6.
   (*case Writeout*)
-  admit.
+  exists (x := Sta ((S p), r, f, c)). apply or_introl. apply tr_writeout ; auto. inversion H5.
+    apply H12.
+    destruct H12. assert (not (protected p /\ unprotected p)) by apply (protected_unprotected_disjoint p). destruct H14. 
+     apply conj. apply H9. apply H12.
+   rewrite (correspond_lookups_protected_val p c ctx H9) ; auto.
 Qed.
 
 
@@ -320,6 +332,23 @@ Theorem dave_label_implies_trace :
     exists c', c' = get_trace_state st /\ c == l' ==>> c'.
 Proof.
 Admitted.
+
+
+
+
+
+
+
+
+
+Axiom correspond_lookups_protected :
+  forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
+    protected p ->
+    (inst (lookupMS c p) i <-> inst (lookup (plug ctx c) p) i).
+Axiom correspond_lookups_punrotected :
+  forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
+    unprotected p ->
+    (inst (lookupME ctx p) i <-> inst (lookup (plug ctx c) p) i).
 
 
 
