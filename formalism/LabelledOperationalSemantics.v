@@ -151,7 +151,7 @@ Inductive eval_label : State -> Label -> State -> Prop :=
   m' = update m (r' SP) (S p)->
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (S (r' SP)) ->
-  m'' = (update m (r'' SP) (address_returnback_entry_point)) ->
+  m'' = (update m' (r'' SP) (address_returnback_entry_point)) ->
   (p, r, f, m) ~~ Callback r f p' ~> (p', r'', f, m'')
 
 | los_eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
@@ -169,7 +169,7 @@ Inductive eval_label : State -> Label -> State -> Prop :=
   entry_jump p p' -> 
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->
-  (p, r, f, m) ~~ Returnback r f p'~> (p', r'', f, m')
+  (p, r, f, m) ~~ Returnback r'' f p'~> (p', r'', f, m')
 
 | los_eval_writeout : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
   inst (lookup m p) (movs rd rs) -> 

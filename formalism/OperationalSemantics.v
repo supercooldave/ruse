@@ -123,7 +123,7 @@ Inductive evalR : State -> State -> Prop :=
   m' = update m (r' SP) (S p)->
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (S (r' SP)) ->
-  m'' = (update m (r'' SP) (address_returnback_entry_point)) ->
+  m'' = (update m' (r'' SP) (address_returnback_entry_point)) ->
   (p, r, f, m) ---> (p', r'', f, m'')
   
 | eval_ret_out_to_in : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
