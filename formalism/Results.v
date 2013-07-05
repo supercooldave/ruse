@@ -232,49 +232,49 @@ inversion H0 as [Hb0 | Hb1 | Hb2 | Hb3 | Hb4 | Hb5]. inversion H4.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply trace_refl.
     (*sub*)
-    inversion H8 as [Hin | Hex].
+    inversion H12 as [Hin | Hex].
       (*internal*)
       admit.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply trace_refl.
     (*call same jump*)
-    inversion H9 as [Hin | Hex].
+    inversion H13 as [Hin | Hex].
       (*internal*)
       admit.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply trace_refl.
     (*ret same jump*)
-    inversion H10 as [Hin | Hex].
+    inversion H14 as [Hin | Hex].
       (*internal*)
       admit.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply trace_refl.
     (*je true*)
-    inversion H11 as [Hin | Hex].
+    inversion H15 as [Hin | Hex].
       (*internal*)
       admit.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply trace_refl.
     (*je false*)
-    inversion H11 as [Hin | Hex].
+    inversion H15 as [Hin | Hex].
       (*internal*)
       admit.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply trace_refl.
     (*jl true*)
-    inversion H11 as [Hin | Hex].
+    inversion H15 as [Hin | Hex].
       (*internal*)
       admit.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply trace_refl.
     (*jl false*)
-    inversion H11 as [Hin | Hex].
+    inversion H15 as [Hin | Hex].
       (*internal*)
       admit.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply trace_refl.
     (*jmp*)
-    inversion H10 as [Hin | Hex].
+    inversion H14 as [Hin | Hex].
       (*internal*)
       admit.
       (*ext*)

@@ -194,6 +194,7 @@ Inductive eval_trace : State -> list Label -> State -> Prop :=
   t =~= nil =~>> t'
 
 | lbl_trace_trans : forall (t t' t'' : State) (l : Label) (l' : list Label),
+  ~ (l = Tau) ->
   t ~~ l ~> t' ->
   t' =~= l' =~>> t''->
   t =~= cons l l' =~>> t''

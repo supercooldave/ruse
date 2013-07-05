@@ -173,6 +173,7 @@ Inductive trace_semantics_tr_ref : TraceState -> ( list Label ) -> TraceState ->
   t == nil ==>> t'
 
 | trace_trans : forall (t t' t'' : TraceState) (l : Label) (l' : list Label),
+  ~ (l = Tau) ->
   t -- l --> t' ->
   t' == l' ==>> t''->
   t == cons l l' ==>> t''
