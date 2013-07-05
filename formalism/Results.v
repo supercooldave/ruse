@@ -135,7 +135,7 @@ Open Scope type_scope.
 Axiom correspond_lookups_protected :
   forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
     protected p ->
-    (inst (lookupMS c p) i <-> inst (lookup (plug ctx c) p) i).
+    ( inst (lookup (plug ctx c) p) i <->inst (lookupMS c p) i).
 Axiom correspond_lookups_punrotected :
   forall (p : Address) (i : Instruction) (c : MemSec) (ctx : MemExt),
     unprotected p ->
@@ -154,9 +154,6 @@ Axiom correspond_register_lookups_unprotected :
 
 
 
-Axiom unknown_produces_nil :
-  forall (c: MemSec), (Unk c) == nil ==>> (Unk c).
-
 
 
 Theorem labels_in_labelled_imply_labels_in_trace : 
@@ -166,18 +163,22 @@ Theorem labels_in_labelled_imply_labels_in_trace :
      (( Sta (p, r, f, c) == l ==>> ts) \/ (Unk c) == l ==>> ts).
 Proof.
 intros p r f ctx c l st H.
-induction H. (* do not induce on l as it would bring forth a case analysis on all actions *)
+remember (p,r,f,plug ctx c) as t in H.
+induction H as [Ha0 | Ha2 | Ha3 | Ha4]. (* do not induce on l as it would bring forth a case analysis on all actions *)
 (*base case : 0 reduction step *)
 exists (x := Sta (p,r,f,c)). apply or_introl. apply trace_refl.
 (*inductive case: tau action*)
-inversion H. inversion H0. 
+inversion H as [Hb0 | Hb1 | Hb2 | Hb3 | Hb4 | Hb5]. rewrite Heqt in H0. inversion H0.
   (*case analysis on all possible Taus*)
     (*movl*)
-    inversion H4.
-    (*internal Tau*)
-    admit.
+    inversion H9 as [Hin | Hex].
+    (*internal Tau*) 
+    exists (x := Sta ((S p),r', f0, c)). apply or_introl. apply trace_tau. apply tr_intern. rewrite H5. inversion Hin. 
+      rewrite (correspond_lookups_protected p (movl rd rs) c ctx H12) in H7. 
+      rewrite <- (correspond_register_lookups_protected p r rs rd c ctx H12) in H11. 
+      apply sec_eval_movl with (rs := rs) (rd := rd); auto. apply Hin.
     (*external Tau*)
-    exists (x := (Unk c)). apply or_intror. apply unknown_produces_nil.
+    exists (x := (Unk c)). apply or_intror. apply trace_refl. 
     (*movs write in prot*)
     admit.
     (*movs write in unprot *)
@@ -209,10 +210,13 @@ inversion H. inversion H0.
 (*inductive case: one action followed by a list*)
 admit.
 (*inductive case: tick*)
-exists (x := Sta (p',r',f',getSecMem m')). 
-
-
-
+exists (x := Sta (p',r',f',getSecMem m')). apply trace_trans with (t' := Sta (p',r',f', getSecMem m')). apply tr_internal_tick.
+  (*case analysis on all steps that produce a tick*)
+  
+  admit.
+  auto.
+  apply trace_refl.
+Qed.
 
 
 
