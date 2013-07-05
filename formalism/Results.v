@@ -142,20 +142,24 @@ Axiom correspond_lookups_punrotected :
     (inst (lookupME ctx p) i <-> inst (lookup (plug ctx c) p) i).
 
 Axiom correspond_register_lookups_protected :
-  forall (p : Address) (r : RegisterFile) (rs rd : Register) (c : MemSec) (ctx : MemExt),
+  forall (p : Address) (r : RegisterFile) (rd : Register) (c : MemSec) (ctx : MemExt) (v : Value),
     protected p ->
-    (updateR r rd (lookupMS c (r rs)) = updateR r rd (lookup (plug ctx c) (r rs))).
+    (updateR r rd (lookupMS c v) = updateR r rd (lookup (plug ctx c) v)).
 Axiom correspond_register_lookups_unprotected :
-  forall (p : Address) (r : RegisterFile) (rs rd : Register) (c : MemSec) (ctx : MemExt),
+  forall (p : Address) (r : RegisterFile) (rd : Register) (c : MemSec) (ctx : MemExt) (v : Value),
     unprotected p ->
-    (updateR r rd (lookupME ctx (r rs)) = updateR r rd (lookup (plug ctx c) (r rs))).
+    (updateR r rd (lookupME ctx v) = updateR r rd (lookup (plug ctx c) v)).
 
 
 
 
 
-Axiom unknown_produces_nil :
-  forall (c: MemSec), (Unk c) == nil ==>> (Unk c).
+Axiom update_protected : 
+  forall (a : Address) (ctx : MemExt) (c :MemSec) (v : Value) (m : Memory),
+    data_segment a -> 
+    m = update (plug ctx c) (a) (v)-> 
+    getSecMem m = updateMS c a v.
+
 
 
 
@@ -165,59 +169,133 @@ Theorem labels_in_labelled_imply_labels_in_trace :
     exists ts: TraceState,
      (( Sta (p, r, f, c) == l ==>> ts) \/ (Unk c) == l ==>> ts).
 Proof.
-intros p r f ctx c l st H.
-induction H. (* do not induce on l as it would bring forth a case analysis on all actions *)
+intros p r f ctx c l st H. 
+(*generalize H.*)
+(*remember (p,r,f,plug ctx c) as t in H.*) 
+(*set ( Haa := (p,r,f,plug ctx c)) in H; assert (Eq1 : t1 = (p,r,f,plug ctx c)) by reflexivity; clearbody t1.*)
+inversion H.
+(*induction H as [Ha0 | Ha2 | Ha3 | Ha4]. do not induce on l as it would bring forth a case analysis on all actions *)
 (*base case : 0 reduction step *)
 exists (x := Sta (p,r,f,c)). apply or_introl. apply trace_refl.
 (*inductive case: tau action*)
-inversion H. inversion H0. 
+
+inversion H0 as [Hb0 | Hb1 | Hb2 | Hb3 | Hb4 | Hb5]. inversion H4. 
   (*case analysis on all possible Taus*)
     (*movl*)
-    inversion H4.
-    (*internal Tau*)
-    admit.
-    (*external Tau*)
-    exists (x := (Unk c)). apply or_intror. apply unknown_produces_nil.
-    (*movs write in prot*)
-    admit.
+    inversion H9 as [Hin | Hex].
+      (*internal Tau*) 
+      exists (x := Sta ((S p),r', f0, c)). apply or_introl. apply trace_tau. apply tr_intern. rewrite H5. inversion Hin. 
+       rewrite <- (correspond_lookups_protected p (movl rd rs) c ctx H12) in H7. 
+       rewrite <- (correspond_register_lookups_protected p r rd c ctx (r rs) H12) in H11. 
+       apply sec_eval_movl with (rs := rs) (rd := rd); auto. apply Hin.
+      (*external Tau*)
+      exists (x := (Unk c)). apply or_intror. apply trace_refl.  
+    (*movs write in prot*) 
+    exists ( x := Sta ((S p), r, f, getSecMem m')). apply or_introl. apply trace_tau. apply tr_intern.
+     rewrite <- (correspond_lookups_protected p (movs rd rs) c ctx H11) in H7. 
+     rewrite (update_protected (r rd) ctx c (r rs) m' H12 H13).  
+     inversion H8.
+       (*internal jump*)
+       apply sec_eval_movs with (rs := rs) (rd := rd) (m := c) (m' := updateMS c (r rd) (r rs)) ; auto.
+       (*external jump (contradiction)*) 
+       destruct H14. assert (not (protected p /\ unprotected p)) by apply (protected_unprotected_disjoint p). destruct H16. 
+        apply conj. apply H11. apply H14. 
+      (*prove the internal jump*)
+      destruct H8.
+        (*internal*)
+        apply H8.
+        (*external*)
+        assert (not (protected p /\ unprotected p)) by apply (protected_unprotected_disjoint p). destruct H14. 
+         apply conj. apply H11. destruct H8. apply H8. 
     (*movs write in unprot *)
-    admit.
-    (*movi*)
-    admit.
+    exists (x := Unk c). apply or_intror. apply trace_refl.
+    (*movi*) 
+    inversion H9 as [Hin | Hex].
+      (*internal*)
+      exists (x := Sta ((S p), r', f, c)). apply or_introl. apply trace_tau. apply tr_intern. inversion Hin.
+       rewrite <- (correspond_lookups_protected p (movi rd i) c ctx H11) in H8. 
+       apply sec_eval_movi with (rd := rd) ( i := i); auto. apply Hin.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*cmp*)
-    admit.
+    inversion H9 as [Hin | Hex].
+      (*internal*)
+      exists (x := Sta ((S p), r, f', c)). apply or_introl. apply trace_tau. apply tr_intern. inversion Hin.
+       rewrite <- (correspond_lookups_protected p (cmp r1 r2) c ctx H11) in H8. 
+       apply sec_eval_compare with (r1 := r1) (r2 := r2); auto. apply Hin.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*add*)
-    admit.
+    inversion H8 as [Hin | Hex].
+      (*internal*)
+      admit.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*sub*)
-    admit.
+    inversion H8 as [Hin | Hex].
+      (*internal*)
+      admit.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*call same jump*)
-    admit.
+    inversion H9 as [Hin | Hex].
+      (*internal*)
+      admit.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*ret same jump*)
-    admit.
+    inversion H10 as [Hin | Hex].
+      (*internal*)
+      admit.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*je true*)
-    admit.
+    inversion H11 as [Hin | Hex].
+      (*internal*)
+      admit.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*je false*)
-    admit.
+    inversion H11 as [Hin | Hex].
+      (*internal*)
+      admit.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*jl true*)
-    admit.
+    inversion H11 as [Hin | Hex].
+      (*internal*)
+      admit.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*jl false*)
-    admit.
+    inversion H11 as [Hin | Hex].
+      (*internal*)
+      admit.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*jmp*)
-    admit.
+    inversion H10 as [Hin | Hex].
+      (*internal*)
+      admit.
+      (*ext*)
+      exists (x := Unk c). apply or_intror. apply trace_refl.
     (*halt*)
-    admit.
-(*inductive case: one action followed by a list*)
+      admit. (*look for contradiction*)
+(*inductive case: one action followed by a list*) 
+
 admit.
 (*inductive case: tick*)
-exists (x := Sta (p',r',f',getSecMem m')). 
+exists (x := Sta (p',r',f',getSecMem m')). apply or_introl. apply trace_trans with (t' := Sta (p',r',f', getSecMem m')). 
+apply tr_internal_tick. 
+  (*case analysis on all steps that produce a tick*)
+  (* inversion H. most cases with contradiction; halt with sth*)
+  auto.
+  apply trace_refl.
+Qed.
 
 
 
-
-
-
-
-(* here is a bunch of FALSE theorems, which are only temporarly Admitted
+(* Here is a bunch of FALSE theorems, which are only temporarly Admitted
    and which i use to remember how to do things in Coq in certain cases
    *)
 
