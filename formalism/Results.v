@@ -125,19 +125,26 @@ inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
     (*add*)
     inversion H9 as [Hin | Hex].
       (*internal*)
-      admit.
+      exists (x := Sta ((S p), r', f', c)). apply or_introl. apply tr_intern. inversion Hin.
+       rewrite <- (correspond_lookups_protected_val p  c ctx H14) in H8. 
+       apply sec_eval_add with (rs := rs) (rd := rd) (v :=v); auto. apply Hin.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply unknown_taus.
     (*sub*)
     inversion H9 as [Hin | Hex].
       (*internal*)
-      admit.
+      exists (x := Sta ((S p), r', f', c)). apply or_introl. apply tr_intern. inversion Hin.
+       rewrite <- (correspond_lookups_protected_val p  c ctx H14) in H8. 
+       apply sec_eval_sub with (rs := rs) (rd := rd) (v :=v); auto. apply Hin.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply unknown_taus.
     (*call same jump*)
     inversion H10 as [Hin | Hex].
       (*internal*)
-      admit.
+      exists (x := Sta (p', r'', f, getSecMem m'')). apply or_introl. apply tr_intern. inversion Hin.
+       rewrite <- (correspond_lookups_protected_val p  c ctx H15) in H8.
+       apply sec_eval_call with (r':=r') (rd := rd); auto. 
+      admit. admit. apply Hin.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply unknown_taus.
     (*ret same jump*)
@@ -149,36 +156,47 @@ inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
     (*je true*)
     inversion H12 as [Hin | Hex].
       (*internal*)
-      admit.
+      exists (x := Sta (p', r, f, c)). apply or_introl. apply tr_intern. inversion Hin.
+       rewrite <- (correspond_lookups_protected_val p  c ctx H13) in H8.
+       apply sec_eval_je_true with (ri := ri) ; auto. apply Hin.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply unknown_taus.
     (*je false*)
     inversion H12 as [Hin | Hex].
       (*internal*)
-      admit.
+      exists (x := Sta ((S p), r, f, c)). apply or_introl. apply tr_intern. inversion Hin.
+       rewrite <- (correspond_lookups_protected_val p  c ctx H13) in H8.
+       apply sec_eval_je_false with (ri := ri) ; auto. rewrite <- H11. apply Hin. rewrite <- H11. apply Hin.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply unknown_taus.
     (*jl true*)
     inversion H12 as [Hin | Hex].
       (*internal*)
-      admit.
+      exists (x := Sta (p', r, f, c)). apply or_introl. apply tr_intern. inversion Hin.
+       rewrite <- (correspond_lookups_protected_val p  c ctx H13) in H8.
+       apply sec_eval_jl_true with (ri := ri) ; auto. apply Hin.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply unknown_taus.
     (*jl false*)
     inversion H12 as [Hin | Hex].
       (*internal*)
-      admit.
+      exists (x := Sta ((S p), r, f, c)). apply or_introl. apply tr_intern. inversion Hin.
+       rewrite <- (correspond_lookups_protected_val p  c ctx H13) in H8.
+       apply sec_eval_jl_false with (ri := ri) ; auto. rewrite <- H11. apply Hin. rewrite <- H11. apply Hin.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply unknown_taus.
     (*jmp*)
     inversion H11 as [Hin | Hex].
       (*internal*)
-      admit.
+      exists (x := Sta (p', r, f, c)). apply or_introl. apply tr_intern. inversion Hin.
+       rewrite <- (correspond_lookups_protected_val p  c ctx H12) in H9.
+       apply sec_eval_jump with (rd := rd) ; auto. apply Hin.
       (*ext*)
       exists (x := Unk c). apply or_intror. apply unknown_taus.
     (*halt*)
+      exists (x := Sta (0, r, f, c)).  apply or_introl. 
       admit. (*look for contradiction*)
-(*inductive case: one action followed by a list*)
+(* ""inductive"" case: one action*)
   (*case Call*) 
   exists (x := Sta (p', r'', f, c)). apply or_intror.  apply tr_call. destruct H6; auto.    
   (*case Callback*)

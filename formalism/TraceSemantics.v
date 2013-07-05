@@ -61,7 +61,7 @@ Inductive eval_sec_t : StateSec -> StateSec -> Prop :=
   
 | sec_eval_call : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : MemSec) (rd : Register),
   inst (lookupMS m p) (call rd) -> 
-  p' = r rd ->
+  p' = lookupMS m (r rd) ->
   int_jump p p' ->
   r'' = updateR r' SP (S (r' SP)) ->
   m'' = updateMS m (r'' SP) (S p) ->
