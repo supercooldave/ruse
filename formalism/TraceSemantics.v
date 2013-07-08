@@ -51,7 +51,6 @@ Inductive trace : TraceState -> Label -> TraceState -> Prop :=
 | tr_return : forall (p p' : Address) (r : RegisterFile) (f: Flags) (m: MemSec) (sp : Register),
   inst (lookupMS m p) (ret) ->
   p' = lookupMS m (r sp) ->
-  p' = address_returnback_entry_point ->
   exit_jump p p'->
   Sta (p, r, f, m) -- Return r f p' --> (Unk m)
 

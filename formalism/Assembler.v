@@ -44,7 +44,6 @@ Axiom no_halt_ext :
     ~ inst (lookupME m p) halt.
 
 
-
 (* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
 Definition stuck_state ( p: Address ) ( m : MemSec ) :=  
   p < 1 \/ forall i:Instruction, ~ inst (lookupMS m p) (i) .
