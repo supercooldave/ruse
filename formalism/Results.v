@@ -5,6 +5,7 @@ Require Import Assembler.
 Require Import MachineModel.
 Require Import TraceSemantics.
 Require Import OperationalSemantics.
+Require Import SameJumpTransitions.
 Require Import LabelledOperationalSemantics.
 Require Import Labels.
 
@@ -66,15 +67,40 @@ Axiom unknown_taus :
   forall (c : MemSec),
     Unk c -- Tau --> Unk c.
 
-Theorem single_label_in_labelled_imply_same_label_in_trace : 
+Axiom unknown_ticks : 
+  forall (c : MemSec),
+    Unk c -- Tick --> Unk c.
+
+Theorem single_label_in_labelled_implies_same_label_in_trace : 
   forall (p : Address) (r : RegisterFile) (f : Flags) (ctx : MemExt) (c : MemSec) (l : Label) (st : State) ,
-    l <> Tick ->
-    (p, r, f, plug ctx c) ~~ l ~> st -> 
+    (p, r, f, plug ctx c) ~~ l ~~> st -> 
     exists ts: TraceState,
      (( Sta (p, r, f, c) -- l --> ts) \/ (Unk c) -- l --> ts).
 Proof.
-intros p r f ctx c l st t H. 
+intros p r f ctx c l st H. 
 inversion H.
+(* ""inductive"" case: one action*)
+  (*case Call*) 
+  exists (x := Sta (p', r'', f, c)). apply or_intror.  apply tr_call. destruct H6; auto.    
+  (*case Return*)
+  exists (x := Unk c). apply or_introl. destruct H8.
+   rewrite <- (correspond_lookups_protected_val p c ctx H8) in H4. apply tr_return with (sp := SP) ; auto. 
+   assert (protected (r SP)). apply protected_pc_protected_sp with (a := p); auto.
+   rewrite (correspond_lookups_protected_val (r SP) c ctx H12); auto. apply conj. apply H8. apply H11.
+
+  (*case Callback*)
+  exists (x := Unk (updateMS c (r' SP) (S p))). apply or_introl. destruct H6.
+   rewrite <- (correspond_lookups_protected_val p c ctx H6) in H4. 
+   apply tr_callback with (r' := r') (rd := rd); auto. apply conj; auto.
+  (*case Returnback*)
+  exists (x := Sta (p', r'', f, c)). apply or_intror. apply tr_returnback. apply H6.
+  (*case Writeout*)
+  exists (x := Sta ((S p), r, f, c)). apply or_introl. apply tr_writeout ; auto. inversion H5.
+    apply H12.
+    destruct H12. assert (not (protected p /\ unprotected p)) by apply (protected_unprotected_disjoint p). destruct H14. 
+     apply conj. apply H9. apply H12.
+   rewrite (correspond_lookups_protected_val p c ctx H9) ; auto.
+
 inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 | h13 | h14 | h15].
   (*case analysis on all possible Taus*)
     (*movl*)
@@ -196,26 +222,6 @@ inversion H0 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
     (*halt*)
       exists (x := Sta (0, r, f, c)).  apply or_introl. 
       admit. (*look for contradiction*)
-(* ""inductive"" case: one action*)
-  (*case Call*) 
-  exists (x := Sta (p', r'', f, c)). apply or_intror.  apply tr_call. destruct H6; auto.    
-  (*case Callback*)
-  exists (x := Unk (updateMS c (r' SP) (S p))). apply or_introl. destruct H6.
-   rewrite <- (correspond_lookups_protected_val p c ctx H6) in H4. 
-   apply tr_callback with (r' := r') (rd := rd); auto. apply conj; auto.
-  (*case Return*)
-  exists (x := Unk c). apply or_introl. destruct H8.
-   rewrite <- (correspond_lookups_protected_val p c ctx H8) in H4. apply tr_return with (sp := SP) ; auto. 
-   assert (protected (r SP)). apply protected_pc_protected_sp with (a := p); auto.
-   rewrite (correspond_lookups_protected_val (r SP) c ctx H12); auto. apply conj. apply H8. apply H11.
-  (*case Returnback*)
-  exists (x := Sta (p', r'', f, c)). apply or_intror. apply tr_returnback. apply H6.
-  (*case Writeout*)
-  exists (x := Sta ((S p), r, f, c)). apply or_introl. apply tr_writeout ; auto. inversion H5.
-    apply H12.
-    destruct H12. assert (not (protected p /\ unprotected p)) by apply (protected_unprotected_disjoint p). destruct H14. 
-     apply conj. apply H9. apply H12.
-   rewrite (correspond_lookups_protected_val p c ctx H9) ; auto.
 Qed.
 
 

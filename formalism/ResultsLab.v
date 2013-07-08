@@ -61,8 +61,8 @@ Proof.
 intros.
 inversion H. (* 5 labels *)
 exists (x := Call r'' f p'). apply los_eval_call with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := rd); auto.
-exists (x := Return r'' f p'). apply los_eval_ret with (r' := r'); auto. 
-exists (x := Callback r'' f p'). apply los_eval_callback with (r' := r') (r'' := r'') (m' := m')  (rd := rd); auto.
+exists (x := Return r f p'). apply los_eval_ret with (r' := r'); auto. 
+exists (x := Callback r f p'). apply los_eval_callback with (r' := r') (r'' := r'') (m' := m')  (rd := rd); auto.
 exists (x := Returnback r'' f p'). apply los_eval_retback with (r' := r'); auto.
 exists (x := Write_out (r rd) (r rs)). apply los_eval_writeout; auto. 
  (* cases of internal jumps *)
