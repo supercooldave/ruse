@@ -4,11 +4,11 @@
 # The modules to be compiled by default.  
 # For these, just call “make” at the commandline.
 
-default: Assembler MachineModel OperationalSemantics LabelledOperationalSemantics TraceSemantics Labels ResultsLab Results TraceTree
+default: Assembler MachineModel SameJumpTransitions Labels OperationalSemantics LabelledOperationalSemantics TraceSemantics ResultsLab Results TraceTree
 
 
 # All modules (invoked by “make all”).
-all: Assembler MachineModel OperationalSemantics LabelledOperationalSemantics TraceSemantics Labels ResultsLab Results TraceTree
+all: Assembler MachineModel SameJumpTransitions Labels OperationalSemantics LabelledOperationalSemantics TraceSemantics ResultsLab Results TraceTree
 
 # Command to be used for compiling coq files.
 # Change this locally if eg “hoqc” doesn’t resolve correctly on your system.
@@ -43,6 +43,9 @@ Results:
 
 ResultsLab:	
 	$(COQC) ResultsLab.v
+
+SameJumpTransitions:
+	$(COQC) SameJumpTransitions.v	
 
 # Call “make clean” to remove all compiled files:
 clean:

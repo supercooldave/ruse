@@ -183,6 +183,7 @@ Definition StateF (X : Type) := Address * RegisterFile * Flags * X.
 
 Definition State := StateF Memory.
 Definition StateSec := StateF MemSec.
+Definition StateExt := StateF MemExt.
 
 (* State for the trace semantics *)
 Inductive TraceState := 
@@ -192,6 +193,8 @@ Inductive TraceState :=
 
 Definition getSecMem : Memory -> MemSec :=
   fun (m : Memory) => snd (split m).
+Definition getExtMem : Memory -> MemExt :=
+  fun (m : Memory) => fst (split m).
 
 
 Definition p_0 : Address := (S last_address). 

@@ -3,6 +3,7 @@ Require Import Omega.
 
 Require Import MachineModel.
 Require Import Assembler.
+Require Import SameJumpTransitions.
 
 
 (*==============================================
@@ -16,53 +17,11 @@ Open Scope type_scope.
 Reserved Notation "S '--->' S'" (at level 50, left associativity).
 
 Inductive evalR : State -> State -> Prop :=
-| eval_movl : forall (p : Address) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd rs : Register),
-  inst (lookup m p) (movl rd rs) -> 
-  same_jump p (S p) ->
-  read_allowed p  (r rs) -> 
-  r' = updateR r rd (lookup m (r rs)) ->  
-  (p, r, f, m) ---> (S p, r', f, m)
-  
-| eval_movs : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
-  inst (lookup m p) (movs rd rs) -> 
-  same_jump p (S p) ->
-  write_allowed p  (r rd) -> 
-  m' = update m  (r rd) (r rs)->  
-  (p, r, f, m) ---> (S p, r, f, m')
-  
-| eval_movi : forall (p : Address) (i : Value) (r r' : RegisterFile) (f : Flags) (m : Memory) (rd : Register),
-  inst (lookup m p) (movi rd i) -> 
-  same_jump p (S p) ->
-  r' = updateR r rd i ->  
-  (p, r, f, m) ---> (S p, r', f, m)
-  
-| eval_compare : forall (p : Address) (r : RegisterFile) (f f' : Flags) (m : Memory) (r1 r2 : Register),
-  inst (lookup m p) (cmp r1 r2) -> 
-  same_jump p (S p) ->
-  f' = updateF (updateF f ZF (beq_nat (r r1) (r r2))) SF (blt_nat (r r1) (r r2)) ->
-  (p, r, f, m) ---> (S p, r, f', m)
-  
-| eval_add : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : Memory) (rd rs : Register),
-  inst (lookup m p) (add_ rd rs) -> 
-  same_jump p (S p) ->
-  v = plus (r rd) (r rs)  ->
-  r' = updateR r rd v ->
-  f' = updateF f ZF (beq_nat v 0) ->
-  (p, r, f, m) ---> (S p, r', f', m)
-  
-| eval_sub : forall (p : Address) (r r' : RegisterFile) (f f' : Flags) (v : Value) (m : Memory) (rd rs : Register),
-  inst (lookup m p) (sub_ rd rs) -> 
-  same_jump p (S p) ->
-  v = minus (r rd) (r rs)  ->
-  r' = updateR r rd v ->
-  f' = updateF f ZF (beq_nat v 0) ->
-  (p, r, f, m) ---> (S p, r', f', m)
   
 | eval_call : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
   inst (lookup m p) (call rd) -> 
   p' = lookup m (r rd) ->
-  (same_jump p p' \/ entry_jump p p') ->
-  (*valid_jump p p' ->*)
+  entry_jump p p' ->
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (S (r' SP)) ->
   m'' = update m (r'' SP) (S p) ->
@@ -71,51 +30,12 @@ Inductive evalR : State -> State -> Prop :=
 | eval_ret : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
   p' =  lookup m (r SP) ->
-  (same_jump p p' \/ exit_jump p p') ->
-  (*valid_jump p p' ->*)
+  exit_jump p p' ->
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->
   (p, r, f, m) ---> (p', r'', f, m')
   
-| eval_je_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
-  inst (lookup m p) (je ri) -> 
-  f ZF = true ->
-  p' = r ri ->
-  same_jump p p' ->
-  (p, r, f, m) ---> (p', r, f, m)
-  
-| eval_je_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
-  inst (lookup m p) (je ri) -> 
-  f ZF = false ->
-  p' = S p ->
-  same_jump p p' ->
-  (p, r, f, m) ---> (p', r, f, m)
-  
-| eval_jl_true : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
-  inst (lookup m p) (jl ri) -> 
-  f SF = true ->
-  p' = r ri ->
-  same_jump p p' ->
-  (p, r, f, m) ---> (p', r, f, m)
-  
-| eval_jl_false : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (ri : Register),
-  inst (lookup m p) (jl ri) -> 
-  f SF = false ->
-  p' = S p ->
-  same_jump p p' ->
-  (p, r, f, m) ---> (p', r, f, m)
-  
-| eval_jump : forall (p p' : Address) (r : RegisterFile) (f : Flags) (m : Memory) (rd : Register),
-  inst (lookup m p) (jmp rd) -> 
-  p' = r rd ->
-  same_jump p p' ->
-  (p, r, f, m) ---> (p', r, f, m)
-  
-| eval_halt : forall (p : Address) (r : RegisterFile) (f : Flags) (m : Memory),
-  inst (lookup m p) halt ->
-  (p, r, f, m) ---> (0, r, f, m)
-
-| eval_call_in_to_out : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
+| eval_callback : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' m'' : Memory) (rd : Register),
   inst (lookup m p) (call rd) -> 
   p' = lookup m (r rd) ->
   exit_jump p p' ->
@@ -126,7 +46,7 @@ Inductive evalR : State -> State -> Prop :=
   m'' = (update m' (r'' SP) (address_returnback_entry_point)) ->
   (p, r, f, m) ---> (p', r'', f, m'')
   
-| eval_ret_out_to_in : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
+| eval_retback : forall (p p' : Address) (r r' r'' : RegisterFile) (f : Flags) (m m' : Memory),
   inst (lookup m p)  ret ->
   p' =  lookup m (r SP) ->
   p' = address_returnback_entry_point ->
@@ -134,7 +54,22 @@ Inductive evalR : State -> State -> Prop :=
   set_stack p r m p' r' m' ->
   r'' = updateR r' SP (minus (r' SP) 1) ->
   (p, r, f, m) ---> ( p', r'', f, m')
-  
+
+| eval_writeout : forall (p : Address) (r : RegisterFile) (f : Flags) (m m' : Memory) (rd rs : Register),
+  inst (lookup m p) (movs rd rs) -> 
+  int_jump p (S p) ->
+  unprotected (r rd) -> 
+  m' = update m  (r rd) (r rs)->  
+  (p, r, f, m) ---> (S p, r, f, m')
+
+| eval_int : forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (m m' : MemSec) (me : MemExt) ,
+  (p, r, f, m) --i--> (p', r', f', m') ->
+  (p, r, f, (plug me m)) ---> (p, r, f, (plug me m'))
+
+| eval_ext : forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (m : MemSec) (me me' : MemExt) ,
+  (p, r, f, me) --e--> (p', r', f', me') ->
+  (p, r, f, (plug me m)) ---> (p, r, f, (plug me' m))  
+
   where "S '--->' S'" := (evalR S S') : type_scope.
 
 
