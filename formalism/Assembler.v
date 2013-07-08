@@ -35,10 +35,12 @@ Axiom inst_no_zero : ~ exists i : Instruction, inst 0 i.
 Axiom no_halt_sec : 
   forall (m : MemSec) (p : Address) (i : Instruction),
     i <> halt ->
-    ~ inst (lookupMS m p) halt.
+    inst (lookupMS m p) i->
+    (~ inst (lookupMS m p) halt).
 Axiom no_halt_ext : 
   forall (m : MemExt) (p : Address) (i : Instruction),
     i <> halt ->
+    inst (lookupME m p) i->
     ~ inst (lookupME m p) halt.
 
 

@@ -67,6 +67,8 @@ exists (x := Returnback r'' f p'). apply los_eval_retback with (r' := r'); auto.
 exists (x := Write_out (r rd) (r rs)). apply los_eval_writeout; auto. 
  (* cases of internal jumps *)
 inversion H0. 
+exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst. apply H0. try (rewrite <- H11 in H8). try (rewrite <- H11). 
+ apply (no_halt_sec m p (movl rd rs)). admit. apply H8.
 exists (x := Tau). admit. 
 exists (x := Tau). admit. 
 exists (x := Tau). admit. 
@@ -79,8 +81,7 @@ exists (x := Tau). admit.
 exists (x := Tau). admit. 
 exists (x := Tau). admit. 
 exists (x := Tau). admit. 
-exists (x := Tau). admit. 
-exists (x := Tick). admit. 
+exists (x := Tick). apply los_eval_int_halt with (p' := p') (r' := r') (f' := f'). subst. apply H0. apply H4.
  (* cases of external jumps *)
 inversion H0.
 exists (x := Tau). admit. 
@@ -96,7 +97,7 @@ exists (x := Tau). admit.
 exists (x := Tau). admit. 
 exists (x := Tau). admit. 
 exists (x := Tau). admit. 
-exists (x := Tick). admit. 
+exists (x := Tick). apply los_eval_ext_halt with (p' := p') (r' := r') (f' := f'). subst. apply H0. apply H4.
 Qed.
 
 
