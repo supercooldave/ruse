@@ -19,190 +19,83 @@ Require Import Labels.
 
 
 
+(*
+Require Import Classical.
+Require Import Coq.Logic.Classical_Pred_Type. 
 
-
-
-(*==============================================
-   Theorems  on the trace semantics 
-    and the labelled operational semantics
-==============================================*)
-Open Scope type_scope.
-
-(* TODO: these should be formalised in terms of lists of labels, not just a single label. *)
-
-
-Axiom correspond_lookups_protected_val :
-  forall (p : Address) (c : MemSec) (ctx : MemExt),
-    protected p ->
-    ((lookupMS c p) = (lookup (plug ctx c) p)).
-Axiom correspond_lookups_punrotected :
-  forall (p : Address) (c : MemSec) (ctx : MemExt),
-    unprotected p ->
-    ( (lookupME ctx p) = (lookup (plug ctx c) p)).
-
-Axiom correspond_register_lookups_protected :
-  forall (p : Address) (r : RegisterFile) (rd : Register) (c : MemSec) (ctx : MemExt) (v : Value),
-    protected p ->
-    (updateR r rd (lookupMS c v) = updateR r rd (lookup (plug ctx c) v)).
-Axiom correspond_register_lookups_unprotected :
-  forall (p : Address) (r : RegisterFile) (rd : Register) (c : MemSec) (ctx : MemExt) (v : Value),
-    unprotected p ->
-    (updateR r rd (lookupME ctx v) = updateR r rd (lookup (plug ctx c) v)).
-
-
-Parameter get_trace_state : State -> TraceState.
-
-
-Axiom update_protected : 
-  forall (a : Address) (ctx : MemExt) (c :MemSec) (v : Value) (m : Memory),
-    data_segment a -> 
-    m = update (plug ctx c) (a) (v)-> 
-    getSecMem m = updateMS c a v.
-
-Axiom protected_pc_protected_sp : forall (a : Address) (r : RegisterFile),
-  protected a ->
-  protected (r SP).
-
-Axiom unknown_taus : 
-  forall (c : MemSec),
-    Unk c -- Tau --> Unk c.
-
-Axiom unknown_ticks : 
-  forall (c : MemSec),
-    Unk c -- Tick --> Unk c.
-
-
-
-Axiom plug_same_memory :
-  forall (ctx me : MemExt) (m c : MemSec),
-    plug ctx c = plug me m ->
-    ( c = m /\ ctx = me).
-
-
-Theorem single_label_in_labelled_implies_same_label_in_trace : 
-  forall (p : Address) (r : RegisterFile) (f : Flags) (ctx : MemExt) (c : MemSec) (l : Label) (st : State) ,
-    (p, r, f, plug ctx c) ~~ l ~~> st -> 
-    exists ts: TraceState,
-     (( Sta (p, r, f, c) -- l --> ts) \/ (Unk c) -- l --> ts).
+Theorem morgan : forall P Q : Prop, ~ (P \/ Q) <-> ~ P /\ ~ Q.
 Proof.
-intros p r f ctx c l st H. 
-inversion H.
-(* one action*)
-  (*case Call*) 
-  exists (x := Sta (p', r'', f, c)). apply or_intror.  apply tr_call. destruct H6; auto.    
-  (*case Return*)
-  exists (x := Unk c). apply or_introl. destruct H8.
-   rewrite <- (correspond_lookups_protected_val p c ctx H8) in H4. apply tr_return with (sp := SP) ; auto. 
-   assert (protected (r SP)). apply protected_pc_protected_sp with (a := p); auto.
-   rewrite (correspond_lookups_protected_val (r SP) c ctx H12); auto. apply conj. apply H8. apply H11.
-  (*case Callback*)
-  exists (x := Unk (updateMS c (r' SP) (S p))). apply or_introl. destruct H6.
-   rewrite <- (correspond_lookups_protected_val p c ctx H6) in H4. 
-   apply tr_callback with (r' := r') (rd := rd); auto. apply conj; auto.
-  (*case Returnback*)
-  exists (x := Sta (p', r'', f, c)). apply or_intror. apply tr_returnback. apply H6.
-  (*case Writeout*)
-  exists (x := Sta ((S p), r, f, c)). apply or_introl. apply tr_writeout ; auto. inversion H5.
-   inversion H7. rewrite (correspond_lookups_protected_val p c ctx H11). apply H4.
-(* Taus *)
-inversion H6 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 | h13 | h14].
-  (*case analysis on all possible Taus*)
-    (*movl*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p),r', f0, c)). apply or_introl. apply tr_intern. inversion H20. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H21. apply H7. 
-    (*movs write in prot*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p) ,r, f0, m')). apply or_introl. apply tr_intern. subst. assert (c = m). 
-       apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H22. apply H7. 
-    (*movi*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p) ,r', f, m')). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*cmp*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p) ,r, f', m')). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*add*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p) ,r', f', c)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H22. apply H7. 
-    (*sub*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p) ,r', f', c)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H22. apply H7. 
-    (*call same jump*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta (p' ,r', f, m')). apply or_introl. apply tr_intern. subst. assert (c = m). 
-       apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H21. apply H7. 
-    (*ret same jump*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta (p' ,r', f, m')). apply or_introl. apply tr_intern. subst. assert (c = m). 
-       apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*je true*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta (p' ,r, f, m)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*je false*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta ( (S p) ,r, f, m)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*jl true*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta (p' ,r, f, m)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*jl false*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta ((S p) ,r, f, m)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*jmp*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta (p' ,r, f, m)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H19. apply H7. 
-    (*halt*)
-      exists (x := Sta (0, r, f, c)).  apply or_introl. subst. contradiction. 
-(* Taus  external*) 
-  exists (x := Unk c). apply or_intror. apply unknown_taus.
-(* Tick internal*) 
-  exists (x := Sta (0, r, f, c)). apply or_introl. apply tr_internal_tick. 
-    apply eval_sec_halt; assert (c = m). apply (plug_same_memory ctx me m c); rewrite H4; reflexivity. rewrite H8. apply H7. 
-    assert (c = m). apply (plug_same_memory ctx me m c); rewrite H4; reflexivity. rewrite H8. apply H7.
-(* Tick external*)
-  exists (x := Unk c). apply or_intror. apply unknown_ticks.
+  split; intros.
+  destruct (classic P); destruct (classic Q); try (elim H; try (left; trivial; fail); try (right; trivial; fail); fail).
+  split; trivial.
+
+  destruct (classic P); destruct (classic Q); destruct H; red; intro; destruct H3; contradiction.
 Qed.
+  
+
+Theorem non_struck_implies_a_step :
+  forall (p : Address) (r: RegisterFile) (f : Flags) (ctx : MemExt) (c : MemSec),
+    protected p ->
+    (~ stuck_state p c)->
+    exists st : State, 
+      (p, r, f, plug ctx c) ---> st.
+Proof.
+intros p r f ctx c pro nost.
+unfold stuck_state in nost. 
+apply morgan in nost. destruct nost.
+apply not_all_ex_not in H0. 
+destruct H0.
+apply NNPP in H0.
+induction x.
+*)
+
+
+Axiom unused_mem_sec :
+  forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (ctx ctx' : MemExt) (c1 c1' c2 c2' : MemSec),
+    unprotected p ->
+    (p,r,f, plug ctx c1) ---> (p', r', f', plug ctx' c1') ->
+    (p,r,f, plug ctx c2) ---> (p', r', f', plug ctx' c2').
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Theorem soundness : 
+  forall (c1 c2 : MemSec) (ts1 ts2 : TraceState) (l : list Label),
+      (Unk c1) == l ==>> ts1 ->
+      (Unk c2) == l ==>> ts2 ->
+      contextual_equivalence c1 c2.
+Proof.
+intros c1 c2 ts1 ts2 l H1 H2.
+red.
+intros ctx Hc1 Hc2. split.
+(*case ->*)
+  intros Hd1. red. intros n. 
+  induction n. 
+  red. 
+  red in Hd1. red in Hd1. specialize (Hd1 0). destruct Hd1 as [n1 Hd1]. destruct Hd1 as [p Hd1].
+  destruct Hd1 as [r Hd1]. destruct Hd1 as [f Hd1]. destruct Hd1 as [ctx0 Hd1]. destruct Hd1 as [c1' Hd1].
+  destruct Hd1 as [sim Hd1].
+  exists (n1). exists p. exists r. exists f. exists ctx0. 
+  inversion Hd1. 
+  assert (H11 := plug_same_memory ctx ctx0 c1' c1 H7). 
+  exists c2. split. rewrite <- H0 in sim. apply sim.
+  destruct H11.
+  unfold initial. subst. apply do_0.
+(* *)
+  assert (Heq1 := plug_same_memory ctx1 ctx c1 c H5). destruct Heq1.
+  assert (Heq2 := plug_same_memory ctx'' ctx0 _ _ H10). destruct Heq2.
+  subst. clear H5 H10.  
+  (*  this is strange
+  eexists. split. apply sim.
+  unfold initial. apply do_Sn with (p' := p') (r' := r') (f' := f') (c' := c2) (ctx' := ctx'). 
+  assert (unprotected p_0). unfold p_0. unfold unprotected. apply or_intror. omega.
+  apply (unused_mem_sec p_0 p' r_0 r' f_0 f' ctx ctx' c1 c' c2 c2 H H6).
+  *)
+  admit.
+  red.
+  red in IHn. destruct IHn as [m IHn]. destruct IHn as [p0 IHn]. destruct IHn as [r0 IHn]. 
+  destruct IHn as [f0 IHn]. destruct IHn as [ctx0 IHn]. destruct IHn as [c IHn]. 
+  exists m. exists p0. exists r0. exists f0. exists ctx0. 
+  destruct IHn as [H HH].
+Admitted.

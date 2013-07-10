@@ -203,7 +203,7 @@ Definition f_0 : Flags :=   fun f : Flag => false.
 
 
 Definition initial : MemSec -> MemExt -> State  :=   fun (p : MemSec) (c : MemExt) => ( p_0, r_0, f_0, (plug c p) ).
-Definition initial_trace : MemSec -> TraceState  :=   fun (p : MemSec) => Sta ( p_0, r_0, f_0, p ).
+Definition initial_trace : MemSec -> TraceState  :=   fun (p : MemSec) => (Unk p ).
 
 
 
@@ -250,5 +250,48 @@ Qed.
 
 
 
+
+
+
+
+
+
+(* group azxioms somewhere *)
+
+
+
+Axiom correspond_lookups_protected_val :
+  forall (p : Address) (c : MemSec) (ctx : MemExt),
+    protected p ->
+    ((lookupMS c p) = (lookup (plug ctx c) p)).
+Axiom correspond_lookups_punrotected :
+  forall (p : Address) (c : MemSec) (ctx : MemExt),
+    unprotected p ->
+    ( (lookupME ctx p) = (lookup (plug ctx c) p)).
+
+Axiom correspond_register_lookups_protected :
+  forall (p : Address) (r : RegisterFile) (rd : Register) (c : MemSec) (ctx : MemExt) (v : Value),
+    protected p ->
+    (updateR r rd (lookupMS c v) = updateR r rd (lookup (plug ctx c) v)).
+Axiom correspond_register_lookups_unprotected :
+  forall (p : Address) (r : RegisterFile) (rd : Register) (c : MemSec) (ctx : MemExt) (v : Value),
+    unprotected p ->
+    (updateR r rd (lookupME ctx v) = updateR r rd (lookup (plug ctx c) v)).
+
+
+Parameter get_trace_state : State -> TraceState.
+
+
+
+Axiom protected_pc_protected_sp : forall (a : Address) (r : RegisterFile),
+  protected a ->
+  protected (r SP).
+
+
+
+Axiom plug_same_memory :
+  forall (ctx me : MemExt) (m c : MemSec),
+    plug ctx c = plug me m ->
+    ( c = m /\ ctx = me).
 
 

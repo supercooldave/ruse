@@ -12,7 +12,6 @@ Require Import SameJumpTransitions.
 ==============================================*)
 
 
-
 (* Trace semantics *)
 Reserved Notation " T '--' L '-->' T' " (at level 50, left associativity).
 
@@ -55,6 +54,19 @@ Inductive trace : TraceState -> Label -> TraceState -> Prop :=
   Sta (p, r, f, m) -- Return r f p' --> (Unk m)
 
 where "T '--' L '-->' T'" := (trace T L T') : type_scope.
+
+
+
+
+(**)
+Axiom unknown_taus : 
+  forall (c : MemSec),
+    Unk c -- Tau --> Unk c.
+
+Axiom unknown_ticks : 
+  forall (c : MemSec),
+    Unk c -- Tick --> Unk c.
+
 
 
 (* reflexive-transitive closure of the trace semantics *)

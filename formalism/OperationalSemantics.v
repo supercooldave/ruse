@@ -81,14 +81,14 @@ Inductive evalR : State -> State -> Prop :=
 
 Inductive do_n_steps: State -> nat -> State -> Prop :=
 | do_0 : forall sta, do_n_steps sta 0 sta
-| do_Sn : forall n sta sta' sta'', 
-  sta ---> sta' ->
-  do_n_steps sta' n sta'' ->
-  do_n_steps sta (S n) sta''.
+| do_Sn : forall n (p p' p'' : Address) (r r' r'' : RegisterFile) (f f' f'' : Flags) (c c' c'' : MemSec) (ctx ctx' ctx'' : MemExt), 
+  (p, r, f, plug ctx c) ---> (p', r', f', plug ctx' c') ->
+  do_n_steps  (p', r', f', plug ctx' c') n  (p'', r'', f'', plug ctx'' c'') ->
+  do_n_steps  (p, r, f, plug ctx c) (S n) (p'', r'', f'', plug ctx'' c'').
 
 Definition anysteps (n : nat) (sta  : State) := 
-  exists n' : nat , exists sta' : State,
-      n' >= n /\ do_n_steps sta n' sta'.
+  exists n' : nat , exists p : Address, exists r : RegisterFile, exists f : Flags, exists ctx : MemExt, exists c : MemSec,
+      n' >= n /\ (do_n_steps sta n' (p, r, f, (plug ctx c))).
 
 Definition diverge (sta : State) := forall n, anysteps n sta.
 
@@ -98,3 +98,4 @@ Definition contextual_equivalence := fun (p1 p2 : MemSec)=>
   forall c : MemExt, compatible p1 c -> compatible p2 c ->
     ( (diverge (initial p1 c)) <-> (diverge (initial p2 c)) ).
   
+
