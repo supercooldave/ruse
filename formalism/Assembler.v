@@ -32,6 +32,17 @@ Axiom inst_unique_decode : forall (v v' : Value) (i : Instruction), inst v i -> 
 Axiom inst_no_zero : ~ exists i : Instruction, inst 0 i.
 
 
+Axiom no_halt_sec : 
+  forall (m : MemSec) (p : Address) (i : Instruction),
+    i <> halt ->
+    inst (lookupMS m p) i->
+    (~ inst (lookupMS m p) halt).
+Axiom no_halt_ext : 
+  forall (m : MemExt) (p : Address) (i : Instruction),
+    i <> halt ->
+    inst (lookupME m p) i->
+    ~ inst (lookupME m p) halt.
+
 
 (* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
 Definition stuck_state ( p: Address ) ( m : MemSec ) :=  
