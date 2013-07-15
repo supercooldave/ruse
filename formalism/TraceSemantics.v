@@ -95,9 +95,8 @@ Inductive trace_semantics : TraceState -> list Label -> Prop :=
     t == l ==>> t' ->
     (trace_semantics t l).
 
-Definition trace_equivalence :=
-  forall (t1 t2 : TraceState) (l : list Label),
-    (trace_semantics t1 l) <-> (trace_semantics t2 l).
+Definition trace_equivalence (t1 t2 : MemSec) (l : list Label) :=
+    (trace_semantics (initial_trace t1) l) <-> (trace_semantics (initial_trace t2) l).
 
 
 

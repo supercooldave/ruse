@@ -9,13 +9,73 @@ Require Import SameJumpTransitions.
 Require Import LabelledOperationalSemantics.
 Require Import Labels.
 
-(* Temporary home for these *)
+
+
+
+
+(*==============================================
+   Lemmas  on the operational semantics
+==============================================*)
+
+Lemma entrypoint_is_protected :
+  forall (p : Address),
+    entrypoint p -> protected p.
+Proof.
+Admitted.
+
+
+Lemma unused_mem_sec :
+  forall (p1 p2 : Address) (r1 r2 : RegisterFile) (f1 f2 : Flags) (ctx1 ctx2 : MemExt) (c11 c12 c21 c22 : MemSec),
+    unprotected p1 ->
+    unprotected p2 ->
+    (p1,r1,f1, plug ctx1 c11) ---> (p2, r2, f2, plug ctx2 c12) ->
+    (p1,r1,f1, plug ctx1 c21) ---> (p2, r2, f2, plug ctx2 c22).
+Proof.
+intros p1 p2 r1 r2 f1 f2 ct1 ct2 c11 c12 c21 c22 Hp1 Hp2 Tr1.
+inversion Tr1.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+inversion H0. apply eval_ext.
+try ( apply eval_ext with (p' := p') (r' := r') (f' := f'); subst; fail).
+
+destruct H9. apply (entrypoint_is_protected) in H13. assert (not (protected p' /\ unprotected p')). 
+apply (protected_unprotected_disjoint p'). unfold not in H14. 
+
+Admitted.
 
 
 
 (*==============================================
    Theorems  on the trace semantics
 ==============================================*)
+
+
+Reserved Notation " L '~~~' L' " (at level 50, left associativity).
+
+Inductive weak_equiv : list Label -> list Label -> Prop :=
+| weak_tau_l : forall (ll ll' : list Label), ll ~~~ ll' -> (Tau :: ll) ~~~ ll'
+| weak_tau_r : forall (ll ll' : list Label), ll ~~~ ll' -> ll ~~~ (Tau :: ll')
+| weak_tick : (Tick :: nil) ~~~ (Tick :: nil)
+| weak_other : forall (l : Label) (ll ll' : list Label), l <> Tick -> ll ~~~ ll' -> (l :: ll) ~~~ (l :: ll')
+
+where "L '~~~' L'" := (weak_equiv L L') : type_scope.
+
+Theorem dave_label_implies_trace :  
+  forall (st st' : State) (c : TraceState) (l : list Label),
+    c = get_trace_state st ->
+    st  =~= l =~=>> st' ->
+    exists l', l ~~~ l' /\
+    exists c', c' = get_trace_state st /\ c == l' ==>> c'.
+Proof.
+Admitted.
+
+
+
+
 
 
 
@@ -50,41 +110,7 @@ induction x.
 *)
 
 
-
-Reserved Notation " L '~~~' L' " (at level 50, left associativity).
-
-Inductive weak_equiv : list Label -> list Label -> Prop :=
-| weak_tau_l : forall (ll ll' : list Label), ll ~~~ ll' -> (Tau :: ll) ~~~ ll'
-| weak_tau_r : forall (ll ll' : list Label), ll ~~~ ll' -> ll ~~~ (Tau :: ll')
-| weak_tick : (Tick :: nil) ~~~ (Tick :: nil)
-| weak_other : forall (l : Label) (ll ll' : list Label), l <> Tick -> ll ~~~ ll' -> (l :: ll) ~~~ (l :: ll')
-
-where "L '~~~' L'" := (weak_equiv L L') : type_scope.
-
-Theorem dave_label_implies_trace :  
-  forall (st st' : State) (c : TraceState) (l : list Label),
-    c = get_trace_state st ->
-    st  =~= l =~>> st' ->
-    exists l', l ~~~ l' /\
-    exists c', c' = get_trace_state st /\ c == l' ==>> c'.
-Proof.
-Admitted.
-
-
-
-
-
-
-Axiom unused_mem_sec :
-  forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (ctx ctx' : MemExt) (c1 c1' c2 c2' : MemSec),
-    unprotected p ->
-    (p,r,f, plug ctx c1) ---> (p', r', f', plug ctx' c1') ->
-    (p,r,f, plug ctx c2) ---> (p', r', f', plug ctx' c2').
-
-
-
-
-
+(*
 Theorem soundness : 
   forall (c1 c2 : MemSec) (ts1 ts2 : TraceState) (l : list Label),
       (Unk c1) == l ==>> ts1 ->
@@ -124,3 +150,5 @@ intros ctx Hc1 Hc2. split.
   exists m. exists p0. exists r0. exists f0. exists ctx0. 
   destruct IHn as [H HH].
 Admitted.
+
+*)

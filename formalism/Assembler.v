@@ -52,6 +52,17 @@ intros m p i Div In.
 red. intros Fl. assert (i = halt). apply (inst_unique_encode (lookupME m p) i halt In Fl). contradiction.
 Qed.
 
+
+Lemma no_inst_and_not_inst :
+  forall (v : Value) (i : Instruction),
+    inst v i -> (~ inst v i) -> False.
+Proof.
+intros.
+unfold not in H0. 
+destruct H0.
+apply H.
+Qed.
+
 (* A state is stuck if its pc is in 0 or if it cannot fetch at instruction *)
 Definition stuck_state ( p: Address ) ( m : MemSec ) :=  
   p < 1 \/ forall i:Instruction, ~ inst (lookupMS m p) (i) .
