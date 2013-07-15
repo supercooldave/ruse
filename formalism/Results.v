@@ -11,6 +11,30 @@ Require Import Labels.
 
 
 
+(*==============================================
+   Lemmas  on the trace semantics
+==============================================*)
+
+Lemma interface_preservation_single_action :
+  forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (ctx ctx' : MemExt) (c1 c2 c1' c2' : MemSec) (l : Label),
+    Sta (p, r, f, c1) -- l --> Sta (p', r', f', c1') ->
+    (p, r, f, plug ctx c1) ---> (p', r', f', plug ctx' c1') ->
+    Sta (p, r, f, c2) -- l --> Sta (p', r', f', c2') ->
+    (p, r, f, plug ctx c2) ---> (p', r', f', plug ctx' c2').
+Proof.
+intros p p' r r' f f' ctx ctx' c1 c2 c1' c2' l tr1 op1 tr2. 
+inversion tr1.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+admit.
+Qed.
+
+
+
 
 Ltac asd :=
   match goal with
