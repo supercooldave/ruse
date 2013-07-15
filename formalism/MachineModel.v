@@ -77,7 +77,7 @@ Definition unprotected (p : Address) : Prop :=
 
 Parameter entrypoint_size : nat.
 Axiom non_zero_entrypoint_size : entrypoint_size > 0.
-
+Axiom non_overflow_entry_points : no_entrypoints * entrypoint_size < code_size + data_size.
 
 
 (* =========
@@ -253,6 +253,16 @@ Qed.
 
 
 
+Lemma entrypoint_is_protected :
+  forall (p : Address),
+    entrypoint p -> protected p.
+Proof.
+intros p H. 
+red. 
+red in H. destruct H. destruct H.
+split. rewrite H0.  admit.
+rewrite H0. unfold last_address. admit.
+Admitted.
 
 
 

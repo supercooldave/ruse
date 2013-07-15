@@ -53,7 +53,7 @@ inversion H0; try (apply eval_ext with (p' := S p) (r' := r') (f' := f'); subst;
 (* case of Tick of internal jumps*)
 inversion H0.
   (*movl*) 
-  subst. grab_2nd_argument H10 j. apply (no_halt_sec m' p j) in H10. 
+  subst. grab_2nd_argument H10 j. apply (no_halt_sec m' p j) in H10.
    unfold not in H10. destruct H10. apply H1. rewrite Heqj. intro. discriminate.
   (*movs*) 
   subst. grab_2nd_argument H11 j. apply (no_halt_sec m p j) in H11. 
@@ -208,7 +208,7 @@ inversion H0.
   exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
    grab_2nd_argument H6 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H6.
   (*halt*) 
-  exists (x := Tick). apply los_eval_int_halt with (p' := 0) (r' := r') (f' := f'). subst; apply H0. apply H4.
+  exists (x := Tick). apply los_eval_int_halt with (p' := 0) (r' := r') (f' := f'). subst; apply H0. auto. 
  (* cases of external jumps *)
 inversion H0.
   (*movl*)
@@ -251,7 +251,7 @@ inversion H0.
   exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
    grab_2nd_argument H6 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H6.
    (*halt*)
-   exists (x := Tick). apply los_eval_ext_halt with (p' := 0) (r' := r') (f' := f'). subst. apply H0. apply H4.
+   exists (x := Tick). apply los_eval_ext_halt with (p' := 0) (r' := r') (f' := f'). subst. apply H0. auto.
 Qed.
 
 

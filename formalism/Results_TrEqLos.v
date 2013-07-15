@@ -115,7 +115,8 @@ inversion H6 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 |
   exists (x := Unk c). apply or_intror. apply unknown_taus.
 (* Tick internal*) 
   exists (x := Sta (0, r, f, c)). apply or_introl. apply tr_internal_tick. 
-    apply eval_sec_halt; assert (c = m). apply (plug_same_memory ctx me m c); rewrite H4; reflexivity. rewrite H8. apply H7. 
+    apply eval_sec_halt. 
+    assert (c = m). apply (plug_same_memory ctx me m c); rewrite H4; reflexivity. rewrite H8. apply H7. 
     assert (c = m). apply (plug_same_memory ctx me m c); rewrite H4; reflexivity. rewrite H8. apply H7.
 (* Tick external*)
   exists (x := Unk c). apply or_intror. apply unknown_ticks.
