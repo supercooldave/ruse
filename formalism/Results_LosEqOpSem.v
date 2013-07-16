@@ -6,15 +6,13 @@ Require Import MachineModel.
 Require Import OperationalSemantics.
 Require Import LabelledOperationalSemantics.
 Require Import Labels.
+Require Import MyTactics.
 
-(* Temporary home for these *)
+(*==============================================
+   Theorems  on the labelled operational semantics
+==============================================*)
 
-Ltac grab_2nd_argument H id :=
-  match goal with
-  | [ H' : _ _ ?X  |- _ ]    => match H with
-                                | H' => remember X as id
-                                end
-  end.
+
 
 (*
 Ltac trivial_different_instruction :=
@@ -23,15 +21,13 @@ Ltac trivial_different_instruction :=
       match goal with
         | [ H'' : inst X ?Y |- _ ] => 
           match ?Y with
-            | [ _ ] => grab_2nd_argument H'' j; apply (no_halt_sec m' p j) in H''; unfold not in H''; destruct H''; apply H'; rewrite Heqj; intro; discriminate
+            | halt => idtac
+            | ?Z => 
+              ( grab_2nd_argument H'' j; apply (no_halt_sec m' p j) in H''; unfold not in H''; destruct H''; apply H'; rewrite Heqj; intro; discriminate)
           end 
       end
-  end. *)
-
-(*==============================================
-   Theorems  on the labelled operational semantics
-==============================================*)
-
+  end. 
+*)
 
 Lemma labelled_semantics_implies_original :
   forall (s1 s2 : State) (l : Label),
