@@ -45,9 +45,10 @@ Ltac contradiction_by_jump :=
 (* Extract the second argument of a generic function with 2 arguments (H) and save it as id *)
 Ltac grab_2nd_argument H id :=
   match goal with
-  | [ H' : _ _ ?X  |- _ ]    => match H with
-                                | H' => remember X as id
-                                end
+  | [ H' : _ _ ?X  |- _ ]    => 
+    match H with
+      | H' => remember X as id
+    end
   end.
 
 

@@ -129,28 +129,6 @@ Qed.
 
 
 
-Theorem fully_abstract_trace_semantics :
-  forall (c1 c2 : MemSec) (l : list Label) (ctx : MemExt),
-    (trace_equivalence c1 c2 l) <-> (contextual_equivalence c1 c2 ctx).
-Proof.
-split; intros H. 
-red. intros com1 com2. split. intros Div1. red. 
-induction n.
-red.
-red in Div1. specialize (Div1 0).  red in Div1. destruct Div1 as [n' Div1].
-destruct Div1 as [p Div1].
-destruct Div1 as [r Div1].
-destruct Div1 as [f Div1].
-destruct Div1 as [ctx0 Div1].
-destruct Div1 as [c10 Div1]. 
-destruct Div1 as [and Div1]. 
-exists n'. exists p. exists r. exists f. exists ctx0. exists c2.
-split.
-apply and.
-inversion Div1.
-unfold initial. assert (ctx = ctx0). apply (plug_same_memory ctx ctx0 c10 c1); apply H6. rewrite H2. apply do_0.
-unfold initial. 
-Admitted.
 
 
 

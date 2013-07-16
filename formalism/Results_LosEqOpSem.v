@@ -6,28 +6,56 @@ Require Import MachineModel.
 Require Import OperationalSemantics.
 Require Import LabelledOperationalSemantics.
 Require Import Labels.
-Require Import MyTactics.
+Require Import MyTactics. 
 
 (*==============================================
    Theorems  on the labelled operational semantics
 ==============================================*)
 
 
-
-(*
-Ltac trivial_different_instruction :=
+Ltac trivial_1 j :=
+ subst;
+    match goal with
+      | [ H'' : inst ?X ?Y , H''' : inst ?X halt |- _ ] => grab_2nd_argument H'' j;
+        match X with 
+          | (_ ?m ?p) => 
+            apply (no_halt_sec m p j) in H''
+        end
+    end.
+Ltac trivial_2 :=
   match goal with
-    | [ H' : inst ?X halt |- _ ] =>
+    | [H : ~ ?X , H' : ?X |- _ ] => destruct H ; auto
+  end.
+Ltac trivial_3 H:=
+    rewrite H;
+      intro;
+        discriminate.
+
+
+Ltac trivial_different_instruction j :=
+subst;
+  match goal with
+    | [ H'' : inst ?X ?Y , H''' : inst ?X halt |- _ ] => 
+      grab_2nd_argument H'' j;
+      match X with 
+        | (_ ?m ?p) => 
+          apply (no_halt_sec m p j) in H'' (*cannot do destruct H'' here, why?*)
+      end;
       match goal with
-        | [ H'' : inst X ?Y |- _ ] => 
-          match ?Y with
-            | halt => idtac
-            | ?Z => 
-              ( grab_2nd_argument H'' j; apply (no_halt_sec m' p j) in H''; unfold not in H''; destruct H''; apply H'; rewrite Heqj; intro; discriminate)
-          end 
+        | [H : ~ ?X , H' : ?X |- _ ] => 
+          destruct H ; auto;
+            match goal with 
+              | [ He : j = _ |- _ ] =>
+                rewrite H; intro; discriminate
+            end
       end
-  end. 
-*)
+  end.
+
+
+
+
+
+
 
 Lemma labelled_semantics_implies_original :
   forall (s1 s2 : State) (l : Label),
@@ -43,15 +71,18 @@ apply eval_callback with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := 
 apply eval_retback with (r' := r') (r'' := r'') (m' := m') (p' := p'); auto. 
 apply eval_writeout with (rs := rs) (rd := rd); auto.
 (* case of Tau of internal jumps*)
-inversion H0; try (apply eval_int with (p' := S p) (r' := r') (f' := f'); subst; apply H0; fail); try(apply eval_int with (p' := p') (r' := r') (f' := f'); subst; apply H0; fail). subst. unfold not in H1. destruct H1. apply H6.
+inversion H0; try (apply eval_int with (p' := S p) (r' := r') (f' := f'); subst; apply H0; fail); try(apply eval_int with (p' := p') (r' := r') (f' := f'); subst; apply H0; fail). subst. unfold not in H1. destruct H1. auto.
  (* Case of Tau of external jumps*)
-inversion H0; try (apply eval_ext with (p' := S p) (r' := r') (f' := f'); subst; apply H0; fail); try(apply eval_ext with (p' := p') (r' := r') (f' := f'); subst; apply H0; fail). subst. unfold not in H1. destruct H1. apply H6.
+inversion H0; try (apply eval_ext with (p' := S p) (r' := r') (f' := f'); subst; apply H0; fail); try(apply eval_ext with (p' := p') (r' := r') (f' := f'); subst; apply H0; fail). subst. unfold not in H1. destruct H1. auto.
 (* case of Tick of internal jumps*)
-inversion H0.
-  (*movl*) 
+inversion H0. trivial_1 j. trivial_2. trivial_3 Heqj.
+
+(*trivial_different_instruction j.*)
+
+  (*movl
   subst. grab_2nd_argument H10 j. apply (no_halt_sec m' p j) in H10.
-   unfold not in H10. destruct H10. apply H1. rewrite Heqj. intro. discriminate.
-  (*movs*) 
+   unfold not in H10. destruct H10. auto. rewrite Heqj. intro. discriminate. *)
+  (*movs*)
   subst. grab_2nd_argument H11 j. apply (no_halt_sec m p j) in H11. 
    unfold not in H11. destruct H11. apply H1. rewrite Heqj. intro. discriminate.
   (*movi*) 
@@ -95,7 +126,7 @@ inversion H0.
   subst. grab_2nd_argument H10 j. apply (no_halt_ext me' p j) in H10. 
    unfold not in H10. destruct H10. apply H1. rewrite Heqj. intro. discriminate.
   (*movs*) 
-  subst. grab_2nd_argument H10 j. apply (no_halt_ext me p j) in H10. 
+  subst. grab_2nd_argument H10 j. apply (no_halt_ext me p j) in H10.  
    unfold not in H10. destruct H10. apply H1. rewrite Heqj. intro. discriminate.
   (*movi*) 
   subst. grab_2nd_argument H8 j. apply (no_halt_ext me' p j) in H8. 
@@ -149,7 +180,6 @@ destruct H.
 Qed.
 
 
-
 Lemma original_semantics_implies_labelled :
   forall s1 s2 : State,
     s1 ---> s2 ->
@@ -165,8 +195,8 @@ exists (x := Write_out (r rd) (r rs)). apply los_eval_writeout; auto.
  (* cases of internal jumps *)
 inversion H0.
   (*movl*)
-  exists (x := Tau). apply los_eval_int with (p' := S p) (r' := r') (f' := f'). subst; apply H0.
-   grab_2nd_argument H8 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H8. 
+  exists (x := Tau). apply los_eval_int with (p' := S p) (r' := r') (f' := f'). subst; auto.
+   grab_2nd_argument H8 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. auto. 
   (*movs*)
   exists (x := Tau). apply los_eval_int with (p' := S p) (r' := r') (f' := f'). subst; apply H0. 
    grab_2nd_argument H9 j. apply (no_halt_sec m p j). rewrite Heqj. intro. discriminate. apply H9.

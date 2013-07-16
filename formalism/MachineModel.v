@@ -253,6 +253,9 @@ Qed.
 
 
 
+
+
+
 Lemma entrypoint_is_protected :
   forall (p : Address),
     entrypoint p -> protected p.
@@ -260,7 +263,7 @@ Proof.
 intros p H. 
 red. 
 red in H. destruct H. destruct H.
-split. rewrite H0.  admit.
+split. rewrite H0.  admit. (*why is omega not enough??? *)
 rewrite H0. unfold last_address. admit.
 Admitted.
 
@@ -268,9 +271,16 @@ Admitted.
 
 
 
+(*not really true*)
+Lemma protected_pc_protected_sp : forall (a : Address) (r : RegisterFile),
+  protected a ->
+  protected (r SP).
+Proof.
+Admitted.
+
+
+
 (* group azxioms somewhere *)
-
-
 
 Axiom correspond_lookups_protected_val :
   forall (p : Address) (c : MemSec) (ctx : MemExt),
@@ -289,20 +299,13 @@ Axiom any_protected_correspond_lookups :
     unprotected p ->
     ( (lookup (plug ctx c') p) = (lookup (plug ctx c) p)).
 
-Parameter get_trace_state : State -> TraceState.
-
-(*not really true*)
-Axiom protected_pc_protected_sp : forall (a : Address) (r : RegisterFile),
-  protected a ->
-  protected (r SP).
-
-
-
 Axiom plug_same_memory :
   forall (ctx me : MemExt) (m c : MemSec),
     plug ctx c = plug me m ->
     ( c = m /\ ctx = me).
 
+
+Parameter get_trace_state : State -> TraceState.
 
 
 
