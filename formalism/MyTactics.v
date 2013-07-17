@@ -106,3 +106,25 @@ Ltac same_domain_step_correspond_semantic :=
 
 
 
+(*this tactic generates a trace step for taus, not with a halt instruction, given a transition in the los
+there are 2 cases that are tried (and failed) because some rules modify the memory (C = MT) and some don't (C = MS)
+*)
+Ltac generate_tau_from_internal_los_step :=
+  match goal with
+    | [ H : int_jump ?PS ?PT, H' : ?SS --i--> ?ST |- _ ]=>
+      match SS with
+        | ( PS, ?RS, ?FS, ?MS) =>
+          match ST with 
+            | ( ?PTS, ?RT, ?FT, ?MT) =>
+              match goal with
+                | [ H'' : (PS, RS, FS, plug ?CTX ?C) ~~ _ ~~> _ , H''' : plug ?ME MS = plug ?CTX ?C |- _] =>
+                  inversion H as [Hin]; exists (x := Sta (PT, RT, FT, MT)); apply or_introl; apply tr_intern; subst;
+                    try( assert (Hn : C = MT) by (apply (plug_same_memory CTX ME MT C); rewrite H'''; reflexivity); 
+                      rewrite Hn; auto;fail);
+                    try( assert (Hn : C = MS) by (apply (plug_same_memory CTX ME MS C); rewrite H'''; reflexivity); 
+                      rewrite Hn; auto;fail)
+              end
+          end
+      end
+  end.
+

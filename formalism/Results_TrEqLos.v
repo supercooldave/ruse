@@ -15,7 +15,7 @@ Require Import MyTactics.
    Theorems  on the trace semantics 
     and the labelled operational semantics
 ==============================================*)
-Open Scope type_scope.
+
 
 Theorem single_label_in_labelled_implies_same_label_in_trace : 
   forall (p : Address) (r : RegisterFile) (f : Flags) (ctx : MemExt) (c : MemSec) (l : Label) (st : State) ,
@@ -45,82 +45,16 @@ inversion H.
   exists (x := Sta ((S p), r, f, c)). apply or_introl. apply tr_writeout ; auto. inversion H5.
    inversion H7. rewrite (correspond_lookups_protected_val p c ctx H11). apply H4.
 (* Taus *)
-inversion H6 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 | h13 | h14].
-  (*case analysis on all possible Taus*)
-    (*movl*)
-    inversion H17 as [Hin].  
-      exists (x := Sta ((S p),r', f', m')). apply or_introl. apply tr_intern. subst. 
-      assert (c = m') by (apply (plug_same_memory ctx me m' c); rewrite H4; reflexivity). rewrite H0; auto.
-       assert (c = m) by (apply (plug_same_memory ctx me m c); rewrite H4; reflexivity). rewrite H21; auto.
-    (*movs write in prot*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p) ,r, f0, m')). apply or_introl. apply tr_intern. subst. assert (c = m). 
-       apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H22. apply H7. 
-    (*movi*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p) ,r', f, m')). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*cmp*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p) ,r, f', m')). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*add*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p) ,r', f', c)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H22. apply H7. 
-    (*sub*)
-    inversion H17 as [Hin].
-      exists (x := Sta ((S p) ,r', f', c)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H22. apply H7. 
-    (*call same jump*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta (p' ,r', f, m')). apply or_introl. apply tr_intern. subst. assert (c = m). 
-       apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H21. apply H7. 
-    (*ret same jump*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta (p' ,r', f, m')). apply or_introl. apply tr_intern. subst. assert (c = m). 
-       apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*je true*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta (p' ,r, f, m)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*je false*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta ( (S p) ,r, f, m)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*jl true*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta (p' ,r, f, m)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*jl false*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta ((S p) ,r, f, m)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H20. apply H7. 
-    (*jmp*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta (p' ,r, f, m)). apply or_introl. apply tr_intern. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H19. apply H7. 
-    (*halt*)
-      exists (x := Sta (0, r, f, c)).  apply or_introl. subst. contradiction. 
+inversion H6; try( generate_tau_from_internal_los_step; fail). 
+(*hlat*)
+subst; contradiction.
 (* Taus  external*) 
   exists (x := Unk c). apply or_intror. apply unknown_taus.
 (* Tick internal*) 
-  exists (x := Sta (0, r, f, c)). apply or_introl. apply tr_internal_tick. 
-    apply eval_sec_halt. 
-    assert (c = m). apply (plug_same_memory ctx me m c); rewrite H4; reflexivity. rewrite H8. apply H7. 
-    assert (c = m). apply (plug_same_memory ctx me m c); rewrite H4; reflexivity. rewrite H8. apply H7.
+  exists (x := Sta (0, r, f, c)). apply or_introl. apply tr_internal_tick.  
+    apply eval_sec_halt;
+    assert (Hn : c = m) by (apply (plug_same_memory ctx me m c); rewrite H4; reflexivity); rewrite Hn; auto. 
+    assert (Hn : c = m) by (apply (plug_same_memory ctx me m c); rewrite H4; reflexivity); rewrite Hn; auto. 
 (* Tick external*)
   exists (x := Unk c). apply or_intror. apply unknown_ticks.
 Qed.
