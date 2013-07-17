@@ -8,6 +8,7 @@ Require Import OperationalSemantics.
 Require Import SameJumpTransitions.
 Require Import LabelledOperationalSemantics.
 Require Import Labels.
+Require Import MyTactics.
 
 
 (*==============================================
@@ -47,10 +48,10 @@ inversion H.
 inversion H6 as [ h1 | h2 | h3 | h4 | h5 | h6 | h7 | h8 | h9 | h10 | h11 | h12 | h13 | h14].
   (*case analysis on all possible Taus*)
     (*movl*)
-    inversion H17 as [Hin]. 
-      exists (x := Sta ((S p),r', f0, c)). apply or_introl. apply tr_intern. inversion H20. subst. assert (c = m'). 
-       apply (plug_same_memory ctx me m' c). rewrite H4. reflexivity. rewrite H0. apply H6.
-       assert (c = m). apply (plug_same_memory ctx me m c). rewrite H4. reflexivity. rewrite H21. apply H7. 
+    inversion H17 as [Hin].  
+      exists (x := Sta ((S p),r', f', m')). apply or_introl. apply tr_intern. subst. 
+      assert (c = m') by (apply (plug_same_memory ctx me m' c); rewrite H4; reflexivity). rewrite H0; auto.
+       assert (c = m) by (apply (plug_same_memory ctx me m c); rewrite H4; reflexivity). rewrite H21; auto.
     (*movs write in prot*)
     inversion H17 as [Hin].
       exists (x := Sta ((S p) ,r, f0, m')). apply or_introl. apply tr_intern. subst. assert (c = m). 

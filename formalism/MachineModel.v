@@ -269,6 +269,20 @@ Proof.
 Qed. 
 
 
+Lemma write_out_address : forall (p p' : Address),
+  write_allowed p p' ->
+  (protected p /\ data_segment p') \/
+  (unprotected p /\ unprotected p') \/
+  (protected p /\ unprotected p').
+Proof.
+intros.
+destruct H.
+  left. split; auto.
+  right. assert (protected p \/ unprotected p). 
+     assert (p = 0 \/ protected p \/ unprotected p) by apply (protected_unprotected_coverage p). intuition. intuition.
+Qed.
+
+
 
 
 
@@ -286,18 +300,6 @@ rewrite H0. unfold last_address. admit. (*use  non_overflow_entry_points *)
 Admitted.
 
 
-
-
-
-(*not really true
-   use for now, prove the one below and then fix the proof
-*)
-Lemma protected_pc_protected_sp : 
-  forall (a : Address) (r : RegisterFile),
-    protected a ->
-    protected (r SP).
-Proof.
-Admitted.
 
 
 

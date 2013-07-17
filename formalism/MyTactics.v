@@ -54,17 +54,55 @@ Ltac grab_2nd_argument H id :=
   end.
 
 
-(*
-Ltac trivial_different_instruction :=
-  match goal with
-    | [ H' : inst ?X halt |- _ ] =>
+
+
+
+(* this tactic reaches a contradiction when an instruction and halt are lookedUp at the same spot 
+   firstly in protected memory
+   then in unprotected one*)
+Ltac contradiction_diff_inst_halt:=
+  let j := fresh in
+    subst;
       match goal with
-        | [ H'' : inst X ?Y |- _ ] => 
-          match ?Y with
-            | halt => idtac
-            | ?Z => 
-              ( grab_2nd_argument H'' j; apply (no_halt_sec m' p j) in H''; unfold not in H''; destruct H''; apply H'; rewrite Heqj; intro; discriminate)
-          end 
-      end
-  end. 
+        | [ H'' : inst (?L ?m ?p) ?Y , H''' : inst (?L ?m ?p) halt |- _ ] => 
+          grab_2nd_argument H'' j; 
+          match L with
+            | lookupMS => apply (no_halt_sec m p j) in H'' 
+            | lookupME =>  apply (no_halt_ext m p j) in H'' 
+          end; try (contradiction ; fail); 
+          match goal with
+            | [Heq : j = _ |- _ ] => rewrite Heq; intros; discriminate
+          end
+      end.
+
+
+
+
+(* this tactic applies the correct rule of the laballed op. sem.  in case a reduction in the same
+   memory space (prot-prot  or  unprot-unprot) happens
 *)
+Ltac same_domain_step_correspond_semantic :=
+  let j := fresh in
+    subst; match goal with   
+             | [ H' : inst _ _ |- _] => 
+               grab_2nd_argument H' j; exists (x := Tau); 
+               match goal with 
+                 | [Heqj : j = _ |- _] =>
+                   match goal with 
+                     | [ H : ?S --i--> _ |- _ ] => 
+                       match S with
+                         | (?P, _, _, ?M) => 
+                           apply los_eval_int; auto; apply (no_halt_sec M P j)
+                       end
+                     | [ H : ?S --e--> _ |- _ ] => 
+                       match S with
+                         | (?P, _, _, ?M) => 
+                           apply los_eval_ext; auto; apply (no_halt_ext M P j)
+                       end
+                   end;
+                   [rewrite Heqj; discriminate | auto]
+               end
+           end .
+
+
+
