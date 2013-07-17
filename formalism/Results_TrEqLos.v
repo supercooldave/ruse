@@ -29,8 +29,10 @@ inversion H.
   exists (x := Sta (p', r'', f, c)). apply or_intror.  apply tr_call. destruct H6; auto.    
   (*case Return*)
   exists (x := Unk c). apply or_introl. destruct H8.
-   rewrite <- (correspond_lookups_protected_val p c ctx H8) in H4. apply tr_return with (sp := SP) ; auto. 
-   assert (protected (r SP)). apply protected_pc_protected_sp with (a := p); auto.
+   rewrite <- (correspond_lookups_protected_val p c ctx H8) in H4. 
+   apply tr_return with (sp := SP); auto. 
+   assert (protected (r SP)). destruct H9; try (contradiction_by_jump). auto.
+   auto.
    rewrite (correspond_lookups_protected_val (r SP) c ctx H12); auto. apply conj. apply H8. apply H11.
   (*case Callback*)
   exists (x := Unk (updateMS c (r' SP) (S p))). apply or_introl. destruct H6.

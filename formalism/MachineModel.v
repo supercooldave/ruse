@@ -77,7 +77,7 @@ Definition unprotected (p : Address) : Prop :=
 
 Parameter entrypoint_size : nat.
 Axiom non_zero_entrypoint_size : entrypoint_size > 0.
-Axiom non_overflow_entry_points : no_entrypoints * entrypoint_size < code_size + data_size.
+Axiom non_overflow_entry_points : no_entrypoints * entrypoint_size < code_size .
 
 
 (* =========
@@ -136,14 +136,32 @@ Definition address_returnback_entry_point : Address := starting_address + no_ent
 Functions that model the switching of the stack
 ==========*)
 Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
-  stack_out_to_in : forall (p p' : Address) (m m': Memory) (r r': RegisterFile),
-  entry_jump p p' -> m' = update m SPext (r SP) -> r' = updateR r SP (lookup m SPsec) -> set_stack p r m p' r' m'
-| stack_in_to_out : forall (p p' : Address) (m m' : Memory) (r r': RegisterFile),
-  exit_jump p p' -> m' = update m SPsec (r SP) -> r' = updateR r SP (lookup m SPext) -> set_stack p r m p' r' m'
-| stack_no_change : forall (p p' : Address) (m : Memory) (r : RegisterFile),
-  same_jump p p' -> set_stack p r m p' r m.
-
-
+| stack_out_to_in : 
+  forall (p p' : Address) (m m': Memory) (r r': RegisterFile),
+    entry_jump p p' -> 
+    unprotected (r SP) -> 
+    m' = update m SPext (r SP) -> 
+    r' = updateR r SP (lookup m SPsec) -> 
+    protected (r' SP) ->
+    set_stack p r m p' r' m'
+| stack_in_to_out : 
+  forall (p p' : Address) (m m' : Memory) (r r': RegisterFile),
+    protected (r SP) ->
+    exit_jump p p' -> 
+    m' = update m SPsec (r SP) -> 
+    r' = updateR r SP (lookup m SPext) ->
+    unprotected (r' SP) ->
+    set_stack p r m p' r' m'
+| stack_no_change_i : 
+  forall (p p' : Address) (m : Memory) (r : RegisterFile),
+    int_jump p p' ->
+    protected (r SP) ->
+    set_stack p r m p' r m
+| stack_no_change_e :
+  forall (p p' : Address) (m : Memory) (r : RegisterFile),
+    ext_jump p p' ->
+    unprotected (r SP) ->
+    set_stack p r m p' r m.
 
 
 
@@ -263,18 +281,21 @@ Proof.
 intros p H. 
 red. 
 red in H. destruct H. destruct H.
-split. rewrite H0.  admit. (*why is omega not enough??? *)
-rewrite H0. unfold last_address. admit.
+split. rewrite H0.   admit. (*why is omega not enough??? *)
+rewrite H0. unfold last_address. admit. (*use  non_overflow_entry_points *)
 Admitted.
 
 
 
 
 
-(*not really true*)
-Lemma protected_pc_protected_sp : forall (a : Address) (r : RegisterFile),
-  protected a ->
-  protected (r SP).
+(*not really true
+   use for now, prove the one below and then fix the proof
+*)
+Lemma protected_pc_protected_sp : 
+  forall (a : Address) (r : RegisterFile),
+    protected a ->
+    protected (r SP).
 Proof.
 Admitted.
 

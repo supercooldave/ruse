@@ -14,30 +14,32 @@ Require Import TraceSemantics.
    protected and unprotected or viceversa
    or protected and 0 or unprotected and 0
 *)
+Ltac shorten_contradiction_jump :=
+  match goal with
+    | [ H' : protected ?X , H'' : unprotected ?X |- _ ] =>
+      (assert (not (protected X /\ unprotected X)) as Hn;
+        [ apply (protected_unprotected_disjoint X) | unfold not in Hn; destruct Hn; split; auto] )
+  end.
+
+(*browse through all cases where a contradiction on the protected/unprotected is reachable and nail it *)
 Ltac contradiction_by_jump :=
   match goal with
-  | [ H' : int_jump ?X _  |- _ ] => 
-    match goal with 
-      | [H'' : unprotected X |- _ ] => 
-        (destruct H' as [Ha Hb]; assert (not (protected X /\ unprotected X)) as Hn;
-          [ apply (protected_unprotected_disjoint X) | unfold not in Hn; destruct Hn; split; auto] )
-    end
-    | [ H' : ext_jump ?X _  |- _ ] => 
-      match goal with 
-        | [H'' : protected X |- _ ] => 
-          (destruct H' as [Ha Hb]; assert (not (protected X /\ unprotected X)) as Hn;
-            [ apply (protected_unprotected_disjoint X) | unfold not in Hn; destruct Hn; split; auto] )
-      end
+    | [ H' : int_jump ?X ?Y  |- _ ] => destruct H' as [Ha Hb]; shorten_contradiction_jump
+    | [ H' : ext_jump ?X ?Y  |- _ ] => destruct H' as [Ha Hb]; shorten_contradiction_jump
     | [ H' : protected ?X  |- _ ] => 
       match goal with
         | [ H : 0 = X |- _] =>
           ( subst; assert (not (protected 0)) as Hn; [ apply not_protected_zero | unfold not in Hn; destruct Hn; auto])
       end
-   | [ H' : unprotected ?X  |- _ ] => 
-     match goal with
-       | [H : 0 = X |- _] =>
-         ( subst; assert (not (unprotected 0)) as Hn; [ apply not_unprotected_zero | unfold not in Hn; destruct Hn; auto])
-     end
+    | [ H' : unprotected ?X  |- _ ] => 
+      match goal with
+        | [H : 0 = X |- _] =>
+          ( subst; assert (not (unprotected 0)) as Hn; [ apply not_unprotected_zero | unfold not in Hn; destruct Hn; auto])
+      end
+    | [ H' : entry_jump ?X ?Y |- _ ] => 
+      destruct H' as [Ha Hb]; try (apply (entrypoint_is_protected) in Hb); shorten_contradiction_jump 
+    | [ H' : exit_jump ?X ?Y |- _ ] => 
+      destruct H' as [Ha Hb]; try (apply (entrypoint_is_protected) in Hb); shorten_contradiction_jump
   end.
 
 

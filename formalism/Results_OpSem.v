@@ -30,17 +30,13 @@ Proof.
 intros p1 p2 r1 r2 f1 f2 ct1 ct2 c11 c21 l neql Hp1 Hp2 Tr1.
 inversion Tr1.
 (*call*)
-destruct H10. apply (entrypoint_is_protected) in H14. assert (not (protected p1 /\ unprotected p1)). 
-apply (protected_unprotected_disjoint p1). unfold not in H15. destruct H15. split; auto.
-(*ret*)
-destruct H10. assert (not (protected p2 /\ unprotected p2)). 
-apply (protected_unprotected_disjoint p2). unfold not in H14. destruct H14. split; auto.
+contradiction_by_jump.
+(*ret*) 
+contradiction_by_jump.
 (*callback*)
-destruct H10. assert (not (protected p2 /\ unprotected p2)). 
-apply (protected_unprotected_disjoint p2). unfold not in H17. destruct H17. split; auto.
+contradiction_by_jump.
 (*retback*)
-destruct H11. apply (entrypoint_is_protected) in H14. assert (not (protected p1 /\ unprotected p1)). 
-apply (protected_unprotected_disjoint p1). unfold not in H15. destruct H15. split; auto.
+contradiction_by_jump.
 (*writeout  contradiction*)
 rewrite <- H4 in neql. unfold not in neql. destruct neql with (r := (r1 rd)) (v := (r1 rs)). reflexivity.
 (*internal *)
@@ -78,17 +74,13 @@ Proof.
 intros p1 p2 r1 r2 f1 f2 ct1 ct2 c11 c21 Hp1 Hp2 Tr1.
 inversion Tr1.
 (*call*)
-destruct H9. apply (entrypoint_is_protected) in H13. assert (not (protected p2 /\ unprotected p2)). 
-apply (protected_unprotected_disjoint p2). unfold not in H14. destruct H14. split. apply H13. apply Hp2.
+contradiction_by_jump.
 (*ret*)
-destruct H9. assert (not (protected p1 /\ unprotected p1)). 
-apply (protected_unprotected_disjoint p1). unfold not in H13. destruct H13. split. apply H9. apply Hp1.
+contradiction_by_jump.
 (*callback*)
-destruct H9. assert (not (protected p1 /\ unprotected p1)). 
-apply (protected_unprotected_disjoint p1). unfold not in H16. destruct H16. split. apply H9. apply Hp1.
+contradiction_by_jump.
 (*retback*)
-destruct H10. apply (entrypoint_is_protected) in H13. assert (not (protected p2 /\ unprotected p2)). 
-apply (protected_unprotected_disjoint p2). unfold not in H14. destruct H14. split. apply H13. apply Hp2.
+contradiction_by_jump.
 (*writeout*)
 contradiction_by_jump.
 (*internal *)  

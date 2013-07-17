@@ -104,3 +104,11 @@ Inductive eval_trace : State -> list Label -> State -> Prop :=
   t =~= cons l l' =~=>> t''
 
 where "T '=~=' L '=~=>>' T'" := (eval_trace T L T') : type_scope.
+
+
+
+
+
+
+
+
