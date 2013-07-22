@@ -52,18 +52,18 @@ Axiom mem_update_update_diff : forall (m : Memory) (a a' : Address) (v v' : Valu
    Memory descriptor and related primitives 
 ==========*)
 Record MemoryDescriptor := MemDesc {
-  starting_address_ : nat;
-  code_size_ : nat;
-  data_size_ : nat;
-  no_entrypoints_ : nat
+  starting_address_field : nat;
+  code_size_field : nat;
+  data_size_field : nat;
+  no_entrypoints_field : nat
 }.
 
 Parameter s : MemoryDescriptor.
 
-Definition starting_address := starting_address_ s.
-Definition code_size := code_size_ s.
-Definition data_size := data_size_ s.
-Definition no_entrypoints := no_entrypoints_ s.
+Definition starting_address := starting_address_field s.
+Definition code_size := code_size_field s.
+Definition data_size := data_size_field s.
+Definition no_entrypoints := no_entrypoints_field s.
 
 Definition last_address : Address := starting_address + code_size + data_size.
 
@@ -295,9 +295,11 @@ Proof.
 intros p H. 
 red. 
 red in H. destruct H. destruct H.
-split. rewrite H0.   admit. (*why is omega not enough??? *)
-rewrite H0. unfold last_address. admit. (*use  non_overflow_entry_points *)
-Admitted.
+split. rewrite H0. intuition. 
+rewrite H0. unfold last_address.  
+assert (no_entrypoints * entrypoint_size < code_size) by (apply non_overflow_entry_points). 
+admit.
+Qed.
 
 
 

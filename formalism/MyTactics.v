@@ -79,7 +79,7 @@ Ltac contradiction_diff_inst_halt:=
 
 
 (* this tactic applies the correct rule of the laballed op. sem.  in case a reduction in the same
-   memory space (prot-prot  or  unprot-unprot) happens
+   memory space (prot-prot  or  unprot-unprot) happens in the op sem
 *)
 Ltac same_domain_step_correspond_semantic :=
   let j := fresh in
