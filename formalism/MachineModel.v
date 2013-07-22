@@ -318,7 +318,8 @@ Lemma entrypoint_is_protected :
 Proof.
   intros p H. 
   red. 
-  red in H. destruct H. destruct H.
+  red in H.
+  destruct H as [x [H H0]]. 
   subst.
   split. 
     assert (entrypoint_size > 0) by apply non_zero_entrypoint_size.
@@ -328,16 +329,15 @@ Proof.
       
   unfold last_address.
   assert (no_entrypoints * entrypoint_size < code_size) by apply non_overflow_entry_points.
-
   assert (x * entrypoint_size < code_size + data_size).
   assert (entrypoint_size > 0) by apply non_zero_entrypoint_size.
-  assert (x * entrypoint_size <  no_entrypoints * entrypoint_size).
-  apply mono_mul; auto.
+  assert (x * entrypoint_size <  no_entrypoints * entrypoint_size)
+    by (apply mono_mul; auto).
 
   omega.
 
   (* new subgoal *)
-  assert (forall (a b c : nat), b < c -> a + b < a + c ) as HP by (intros; omega).
+  assert (forall (a b c : nat), b < c -> a + b < a + c) as HP by (intros; omega).
   apply HP with (a := starting_address) in H1.
   omega.
 Qed.
