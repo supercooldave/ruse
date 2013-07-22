@@ -286,17 +286,24 @@ Qed.
 
 
 
-
-
 Lemma entrypoint_is_protected :
   forall (p : Address),
     entrypoint p -> protected p.
 Proof.
-intros p H. 
-red. 
-red in H. destruct H. destruct H.
-split. rewrite H0.   admit. (*why is omega not enough??? *)
-rewrite H0. unfold last_address. admit. (*use  non_overflow_entry_points *)
+  intros p H. 
+  red. 
+  red in H. destruct H. destruct H.
+  subst.
+  split. 
+    assert (entrypoint_size > 0) by apply non_zero_entrypoint_size.
+
+    assert (forall (a b : nat), a <= a + b) by (intros; omega).
+    apply H1.
+      
+  unfold last_address.
+  assert (no_entrypoints * entrypoint_size < code_size) by apply non_overflow_entry_points.
+(* stuck again *)
+admit. (*use  non_overflow_entry_points *)
 Admitted.
 
 
