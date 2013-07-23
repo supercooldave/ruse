@@ -2,6 +2,7 @@ Require Import Omega.
 Require Import List.
 
 
+
 (*==============================================
    This models the memory and all its variants. 
    Instructions are modelled elsewhere (for now).
@@ -266,7 +267,8 @@ Proof.
   unfold protected, unprotected.
   unfold Address in *.
   omega.
-Qed. 
+Qed.  
+
 
 
 Lemma write_out_address : forall (p p' : Address),
@@ -284,34 +286,44 @@ Qed.
 
 
 
+Lemma two_add : forall a b c d, a < b -> c < d -> a + c < b + d.
+Proof.
+  intros.
+  omega.
+Qed.
+
+
+
+
+Open Scope nat.
+
+Lemma two_steps : forall a b m, a < b -> a * m < b * m -> a * (S m) < b * (S m).
+  intros.
+  assert (a * m + a < b * m + b) by (apply two_add; auto). 
+  assert (a * m + a = a * S m) by auto.
+  assert (b * m + b = b * S m) by auto.
+  rewrite <- H2. 
+  rewrite <- H3.
+  auto. 
+Qed.
+
+
+Lemma mono_mul : forall (a b c : nat), a < b -> c > 0 -> a * c < b * c.
+Proof. 
+  intros.
+  induction H0. omega.
+  apply two_steps; auto.
+Qed.
 
 
 Lemma entrypoint_is_protected :
   forall (p : Address),
     entrypoint p -> protected p.
 Proof.
-intros p H. 
-red. 
-red in H. destruct H. destruct H.
-split. rewrite H0. intuition. 
-rewrite H0. unfold last_address.  
-assert (no_entrypoints * entrypoint_size < code_size) by (apply non_overflow_entry_points). 
-admit.
-Admitted.
-
-
-
-(*
-Dave's proof. 
-Reaches the same state but with more passes.
-
-Lemma entrypoint_is_protected_dave :
-  forall (p : Address),
-    entrypoint p -> protected p.
-Proof.
   intros p H. 
   red. 
-  red in H. destruct H. destruct H.
+  red in H.
+  destruct H as [x [H H0]]. 
   subst.
   split. 
     assert (entrypoint_size > 0) by apply non_zero_entrypoint_size.
@@ -321,9 +333,19 @@ Proof.
       
   unfold last_address.
   assert (no_entrypoints * entrypoint_size < code_size) by apply non_overflow_entry_points.
-(* stuck again *)
-admit. (*use  non_overflow_entry_points *)
-*)
+  assert (x * entrypoint_size < code_size + data_size).
+  assert (entrypoint_size > 0) by apply non_zero_entrypoint_size.
+  assert (x * entrypoint_size <  no_entrypoints * entrypoint_size)
+    by (apply mono_mul; auto).
+
+  omega.
+
+  (* new subgoal *)
+  assert (forall (a b c : nat), b < c -> a + b < a + c) as HP by (intros; omega).
+  apply HP with (a := starting_address) in H1.
+  omega.
+Qed.
+
 
 
 
