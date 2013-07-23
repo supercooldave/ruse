@@ -8,15 +8,72 @@ Require Import OperationalSemantics.
 Require Import SameJumpTransitions.
 Require Import LabelledOperationalSemantics.
 Require Import Labels.
-
-(* Temporary home for these *)
+Require Import MyTactics.
 
 
 
 (*==============================================
-   Theorems  on the trace semantics
+   Lemmas  on the trace semantics
 ==============================================*)
 
+
+
+
+
+
+
+
+
+(*==============================================
+   Theorems  ON the trace semantics
+==============================================*)
+
+
+Reserved Notation " L '~~~' L' " (at level 50, left associativity).
+
+Inductive weak_equiv : list Label -> list Label -> Prop :=
+| weak_tau_l : forall (ll ll' : list Label), ll ~~~ ll' -> (Tau :: ll) ~~~ ll'
+| weak_tau_r : forall (ll ll' : list Label), ll ~~~ ll' -> ll ~~~ (Tau :: ll')
+| weak_tick : (Tick :: nil) ~~~ (Tick :: nil)
+| weak_other : forall (l : Label) (ll ll' : list Label), l <> Tick -> ll ~~~ ll' -> (l :: ll) ~~~ (l :: ll')
+
+where "L '~~~' L'" := (weak_equiv L L') : type_scope.
+
+Theorem dave_label_implies_trace :  
+  forall (st st' : State) (c : TraceState) (l : list Label),
+    c = get_trace_state st ->
+    st  =~= l =~=>> st' ->
+    exists l', l ~~~ l' /\
+    exists c', c' = get_trace_state st /\ c == l' ==>> c'.
+Proof.
+Admitted.
+
+
+
+
+
+Theorem fully_abstract_trace_semantics :
+  forall (c1 c2 : MemSec) (l : list Label) (ctx : MemExt),
+    (trace_equivalence c1 c2 l) <-> (contextual_equivalence c1 c2 ctx).
+Proof.
+split; intros H. 
+red. intros com1 com2. split. intros Div1. red. 
+induction n.
+red.
+red in Div1. specialize (Div1 0).  red in Div1. destruct Div1 as [n' Div1].
+destruct Div1 as [p Div1].
+destruct Div1 as [r Div1].
+destruct Div1 as [f Div1].
+destruct Div1 as [ctx0 Div1].
+destruct Div1 as [c10 Div1]. 
+destruct Div1 as [and Div1]. 
+exists n'. exists p. exists r. exists f. exists ctx0. exists c2.
+split.
+apply and.
+inversion Div1.
+unfold initial. assert (ctx = ctx0). apply (plug_same_memory ctx ctx0 c10 c1); apply H6. rewrite H2. apply do_0.
+unfold initial. 
+Admitted.
 
 
 (*
@@ -50,16 +107,7 @@ induction x.
 *)
 
 
-Axiom unused_mem_sec :
-  forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (ctx ctx' : MemExt) (c1 c1' c2 c2' : MemSec),
-    unprotected p ->
-    (p,r,f, plug ctx c1) ---> (p', r', f', plug ctx' c1') ->
-    (p,r,f, plug ctx c2) ---> (p', r', f', plug ctx' c2').
-
-
-
-
-
+(*
 Theorem soundness : 
   forall (c1 c2 : MemSec) (ts1 ts2 : TraceState) (l : list Label),
       (Unk c1) == l ==>> ts1 ->
@@ -99,3 +147,5 @@ intros ctx Hc1 Hc2. split.
   exists m. exists p0. exists r0. exists f0. exists ctx0. 
   destruct IHn as [H HH].
 Admitted.
+
+*)

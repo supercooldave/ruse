@@ -64,22 +64,22 @@ Inductive eval_label : State -> Label -> State -> Prop :=
 | los_eval_int : forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (m m' : MemSec) (me : MemExt) ,
   (p, r, f, m) --i--> (p', r', f', m') ->
   ( ~ (inst (lookupMS m p) (halt))) ->
-  (p, r, f, (plug me m)) ~~ Tau ~~> (p, r, f, (plug me m'))
+  (p, r, f, (plug me m)) ~~ Tau ~~> (p', r', f', (plug me m'))
 
 | los_eval_ext : forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (m : MemSec) (me me' : MemExt) ,
   (p, r, f, me) --e--> (p', r', f', me') ->
   ( ~ (inst (lookupME me p) (halt))) ->
-  (p, r, f, (plug me m)) ~~ Tau ~~> (p, r, f, (plug me' m))  
+  (p, r, f, (plug me m)) ~~ Tau ~~> (p', r', f', (plug me' m))  
 
 | los_eval_int_halt : forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (m m' : MemSec) (me : MemExt) ,
   (p, r, f, m) --i--> (p', r', f', m') ->
   (inst (lookupMS m p) (halt)) ->
-  (p, r, f, (plug me m)) ~~ Tick ~~> (p, r, f, (plug me m'))
+  (p, r, f, (plug me m)) ~~ Tick ~~> (p', r', f', (plug me m'))
 
 | los_eval_ext_halt : forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (m : MemSec) (me me' : MemExt) ,
   (p, r, f, me) --e--> (p', r', f', me') ->
   (inst (lookupME me p) (halt)) ->
-  (p, r, f, (plug me m)) ~~ Tick ~~> (p, r, f, (plug me' m))  
+  (p, r, f, (plug me m)) ~~ Tick ~~> (p', r', f', (plug me' m))  
 
   where "S '~~' L '~~>' S'" := (eval_label S L S') : type_scope.
 
@@ -104,3 +104,11 @@ Inductive eval_trace : State -> list Label -> State -> Prop :=
   t =~= cons l l' =~=>> t''
 
 where "T '=~=' L '=~=>>' T'" := (eval_trace T L T') : type_scope.
+
+
+
+
+
+
+
+

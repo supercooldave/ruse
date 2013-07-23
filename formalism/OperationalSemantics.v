@@ -64,11 +64,11 @@ Inductive evalR : State -> State -> Prop :=
 
 | eval_int : forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (m m' : MemSec) (me : MemExt) ,
   (p, r, f, m) --i--> (p', r', f', m') ->
-  (p, r, f, (plug me m)) ---> (p, r, f, (plug me m'))
+  (p, r, f, (plug me m)) ---> (p', r', f', (plug me m'))
 
 | eval_ext : forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (m : MemSec) (me me' : MemExt) ,
   (p, r, f, me) --e--> (p', r', f', me') ->
-  (p, r, f, (plug me m)) ---> (p, r, f, (plug me' m))  
+  (p, r, f, (plug me m)) ---> (p', r', f', (plug me' m))  
 
   where "S '--->' S'" := (evalR S S') : type_scope.
 
@@ -94,8 +94,12 @@ Definition diverge (sta : State) := forall n, anysteps n sta.
 
 
 
-Definition contextual_equivalence := fun (p1 p2 : MemSec)=>
-  forall c : MemExt, compatible p1 c -> compatible p2 c ->
+Definition contextual_equivalence (p1 p2 : MemSec) (c : MemExt) :=
+    compatible p1 c -> compatible p2 c ->
     ( (diverge (initial p1 c)) <-> (diverge (initial p2 c)) ).
   
+
+
+
+
 

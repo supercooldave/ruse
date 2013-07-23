@@ -2,6 +2,7 @@ Require Import Omega.
 Require Import List.
 
 
+
 (*==============================================
    This models the memory and all its variants. 
    Instructions are modelled elsewhere (for now).
@@ -52,18 +53,18 @@ Axiom mem_update_update_diff : forall (m : Memory) (a a' : Address) (v v' : Valu
    Memory descriptor and related primitives 
 ==========*)
 Record MemoryDescriptor := MemDesc {
-  starting_address_ : nat;
-  code_size_ : nat;
-  data_size_ : nat;
-  no_entrypoints_ : nat
+  starting_address_field : nat;
+  code_size_field : nat;
+  data_size_field : nat;
+  no_entrypoints_field : nat
 }.
 
 Parameter s : MemoryDescriptor.
 
-Definition starting_address := starting_address_ s.
-Definition code_size := code_size_ s.
-Definition data_size := data_size_ s.
-Definition no_entrypoints := no_entrypoints_ s.
+Definition starting_address := starting_address_field s.
+Definition code_size := code_size_field s.
+Definition data_size := data_size_field s.
+Definition no_entrypoints := no_entrypoints_field s.
 
 Definition last_address : Address := starting_address + code_size + data_size.
 
@@ -77,7 +78,7 @@ Definition unprotected (p : Address) : Prop :=
 
 Parameter entrypoint_size : nat.
 Axiom non_zero_entrypoint_size : entrypoint_size > 0.
-
+Axiom non_overflow_entry_points : no_entrypoints * entrypoint_size < code_size .
 
 
 (* =========
@@ -136,14 +137,32 @@ Definition address_returnback_entry_point : Address := starting_address + no_ent
 Functions that model the switching of the stack
 ==========*)
 Inductive set_stack : Address -> RegisterFile -> Memory -> Address -> RegisterFile -> Memory -> Prop :=
-  stack_out_to_in : forall (p p' : Address) (m m': Memory) (r r': RegisterFile),
-  entry_jump p p' -> m' = update m SPext (r SP) -> r' = updateR r SP (lookup m SPsec) -> set_stack p r m p' r' m'
-| stack_in_to_out : forall (p p' : Address) (m m' : Memory) (r r': RegisterFile),
-  exit_jump p p' -> m' = update m SPsec (r SP) -> r' = updateR r SP (lookup m SPext) -> set_stack p r m p' r' m'
-| stack_no_change : forall (p p' : Address) (m : Memory) (r : RegisterFile),
-  same_jump p p' -> set_stack p r m p' r m.
-
-
+| stack_out_to_in : 
+  forall (p p' : Address) (m m': Memory) (r r': RegisterFile),
+    entry_jump p p' -> 
+    unprotected (r SP) -> 
+    m' = update m SPext (r SP) -> 
+    r' = updateR r SP (lookup m SPsec) -> 
+    protected (r' SP) ->
+    set_stack p r m p' r' m'
+| stack_in_to_out : 
+  forall (p p' : Address) (m m' : Memory) (r r': RegisterFile),
+    protected (r SP) ->
+    exit_jump p p' -> 
+    m' = update m SPsec (r SP) -> 
+    r' = updateR r SP (lookup m SPext) ->
+    unprotected (r' SP) ->
+    set_stack p r m p' r' m'
+| stack_no_change_i : 
+  forall (p p' : Address) (m : Memory) (r : RegisterFile),
+    int_jump p p' ->
+    protected (r SP) ->
+    set_stack p r m p' r m
+| stack_no_change_e :
+  forall (p p' : Address) (m : Memory) (r : RegisterFile),
+    ext_jump p p' ->
+    unprotected (r SP) ->
+    set_stack p r m p' r m.
 
 
 
@@ -207,6 +226,8 @@ Definition initial_trace : MemSec -> TraceState  :=   fun (p : MemSec) => (Unk p
 
 
 
+
+
 (*==============================================
    Properties 
     of the protection mechanism 
@@ -246,10 +267,84 @@ Proof.
   unfold protected, unprotected.
   unfold Address in *.
   omega.
-Qed. 
+Qed.  
 
 
 
+Lemma write_out_address : forall (p p' : Address),
+  write_allowed p p' ->
+  (protected p /\ data_segment p') \/
+  (unprotected p /\ unprotected p') \/
+  (protected p /\ unprotected p').
+Proof.
+intros.
+destruct H.
+  left. split; auto.
+  right. assert (protected p \/ unprotected p). 
+     assert (p = 0 \/ protected p \/ unprotected p) by apply (protected_unprotected_coverage p). intuition. intuition.
+Qed.
+
+
+
+Lemma two_add : forall a b c d, a < b -> c < d -> a + c < b + d.
+Proof.
+  intros.
+  omega.
+Qed.
+
+
+
+
+Open Scope nat.
+
+Lemma two_steps : forall a b m, a < b -> a * m < b * m -> a * (S m) < b * (S m).
+  intros.
+  assert (a * m + a < b * m + b) by (apply two_add; auto). 
+  assert (a * m + a = a * S m) by auto.
+  assert (b * m + b = b * S m) by auto.
+  rewrite <- H2. 
+  rewrite <- H3.
+  auto. 
+Qed.
+
+
+Lemma mono_mul : forall (a b c : nat), a < b -> c > 0 -> a * c < b * c.
+Proof. 
+  intros.
+  induction H0. omega.
+  apply two_steps; auto.
+Qed.
+
+
+Lemma entrypoint_is_protected :
+  forall (p : Address),
+    entrypoint p -> protected p.
+Proof.
+  intros p H. 
+  red. 
+  red in H.
+  destruct H as [x [H H0]]. 
+  subst.
+  split. 
+    assert (entrypoint_size > 0) by apply non_zero_entrypoint_size.
+
+    assert (forall (a b : nat), a <= a + b) by (intros; omega).
+    apply H1.
+      
+  unfold last_address.
+  assert (no_entrypoints * entrypoint_size < code_size) by apply non_overflow_entry_points.
+  assert (x * entrypoint_size < code_size + data_size).
+  assert (entrypoint_size > 0) by apply non_zero_entrypoint_size.
+  assert (x * entrypoint_size <  no_entrypoints * entrypoint_size)
+    by (apply mono_mul; auto).
+
+  omega.
+
+  (* new subgoal *)
+  assert (forall (a b c : nat), b < c -> a + b < a + c) as HP by (intros; omega).
+  apply HP with (a := starting_address) in H1.
+  omega.
+Qed.
 
 
 
@@ -258,36 +353,22 @@ Qed.
 
 (* group azxioms somewhere *)
 
-
-
 Axiom correspond_lookups_protected_val :
   forall (p : Address) (c : MemSec) (ctx : MemExt),
     protected p ->
     ((lookupMS c p) = (lookup (plug ctx c) p)).
-Axiom correspond_lookups_punrotected :
+Axiom correspond_lookups_unprotected :
   forall (p : Address) (c : MemSec) (ctx : MemExt),
     unprotected p ->
     ( (lookupME ctx p) = (lookup (plug ctx c) p)).
-
-Axiom correspond_register_lookups_protected :
-  forall (p : Address) (r : RegisterFile) (rd : Register) (c : MemSec) (ctx : MemExt) (v : Value),
+Axiom any_unprotected_correspond_lookups :
+  forall (p : Address) (c : MemSec) (ctx ctx' : MemExt),
     protected p ->
-    (updateR r rd (lookupMS c v) = updateR r rd (lookup (plug ctx c) v)).
-Axiom correspond_register_lookups_unprotected :
-  forall (p : Address) (r : RegisterFile) (rd : Register) (c : MemSec) (ctx : MemExt) (v : Value),
+    ((lookup (plug ctx' c) p) = (lookup (plug ctx c) p)).
+Axiom any_protected_correspond_lookups :
+  forall (p : Address) (c c': MemSec) (ctx : MemExt),
     unprotected p ->
-    (updateR r rd (lookupME ctx v) = updateR r rd (lookup (plug ctx c) v)).
-
-
-Parameter get_trace_state : State -> TraceState.
-
-
-
-Axiom protected_pc_protected_sp : forall (a : Address) (r : RegisterFile),
-  protected a ->
-  protected (r SP).
-
-
+    ( (lookup (plug ctx c') p) = (lookup (plug ctx c) p)).
 
 Axiom plug_same_memory :
   forall (ctx me : MemExt) (m c : MemSec),
@@ -295,3 +376,4 @@ Axiom plug_same_memory :
     ( c = m /\ ctx = me).
 
 
+Parameter get_trace_state : State -> TraceState.

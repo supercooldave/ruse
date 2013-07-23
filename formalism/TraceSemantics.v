@@ -90,6 +90,14 @@ where "T '==' L '==>>' T'" := (trace_semantics_tr_ref T L T') : type_scope.
 
 
 
+Inductive trace_semantics : TraceState -> list Label -> Prop :=
+| traces_semantics_case : forall (t t': TraceState) (l : list Label),
+    t == l ==>> t' ->
+    (trace_semantics t l).
+
+Definition trace_equivalence (t1 t2 : MemSec) (l : list Label) :=
+    (trace_semantics (initial_trace t1) l) <-> (trace_semantics (initial_trace t2) l).
+
 
 
 

@@ -6,13 +6,11 @@ Require Import MachineModel.
 Require Import OperationalSemantics.
 Require Import LabelledOperationalSemantics.
 Require Import Labels.
-
-(* Temporary home for these *)
+Require Import MyTactics. 
 
 (*==============================================
    Theorems  on the labelled operational semantics
 ==============================================*)
-
 
 Lemma labelled_semantics_implies_original :
   forall (s1 s2 : State) (l : Label),
@@ -28,36 +26,25 @@ apply eval_callback with (r' := r') (r'' := r'') (m' := m') (m'' := m'') (rd := 
 apply eval_retback with (r' := r') (r'' := r'') (m' := m') (p' := p'); auto. 
 apply eval_writeout with (rs := rs) (rd := rd); auto.
 (* case of Tau of internal jumps*)
-inversion H0; apply eval_int with (p' := p') (r' := r') (f' := f'); subst; apply H0.
- (* case of Tau of external jumps*)
-inversion H0; apply eval_ext with (p' := p') (r' := r') (f' := f'); subst; apply H0.
+inversion H0; 
+  try (apply eval_int with (p' := S p) (r' := r') (f' := f'); subst; apply H0; fail);
+  try(apply eval_int with (p' := p') (r' := r') (f' := f'); subst; apply H0; fail). 
+  subst. unfold not in H1. destruct H1; auto.
+ (* Case of Tau of external jumps*)
+inversion H0; 
+  try (apply eval_ext with (p' := S p) (r' := r') (f' := f'); subst; apply H0; fail); 
+  try(apply eval_ext with (p' := p') (r' := r') (f' := f'); subst; apply H0; fail). 
+  subst. unfold not in H1. destruct H1; auto.
 (* case of Tick of internal jumps*)
-inversion H0; try (apply eval_int with (p' := p') (r' := r') (f' := f'); subst; apply H0; fail).  
+inversion H0; try (contradiction_diff_inst_halt; fail).
+  (*halt*)
+  apply eval_int with (p' := 0) (r' := r') (f' := f'). subst; auto.
 (* case of Tick of external jumps*)
-inversion H0; try (apply eval_ext with (p' := p') (r' := r') (f' := f'); subst; apply H0; fail).  
+inversion H0; try (contradiction_diff_inst_halt; fail).
+  (*halt*)
+  apply eval_ext with (p' := 0) (r' := r') (f' := f'); subst; auto.
 Qed.
 
-
-Lemma write_out_address : forall (p p' : Address),
-  write_allowed p p' ->
-  (protected p /\ data_segment p') \/
-  (unprotected p /\ unprotected p') \/
-  (protected p /\ unprotected p').
-Proof.
-intros.
-destruct H.
-  left. split; auto.
-  right. assert (protected p \/ unprotected p). 
-     assert (p = 0 \/ protected p \/ unprotected p) by apply (protected_unprotected_coverage p). intuition. intuition.
-Qed.
-
-
-Ltac grab_2nd_argument H id :=
-  match goal with
-  | [ H' : _ _ ?X  |- _ ]    => match H with
-                                | H' => remember X as id
-                                end
-  end.
 
 Lemma original_semantics_implies_labelled :
   forall s1 s2 : State,
@@ -72,91 +59,13 @@ exists (x := Callback r f p'). apply los_eval_callback with (r' := r') (r'' := r
 exists (x := Returnback r'' f p'). apply los_eval_retback with (r' := r'); auto.
 exists (x := Write_out (r rd) (r rs)). apply los_eval_writeout; auto. 
  (* cases of internal jumps *)
-inversion H0.
-  (*movl*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0.
-   grab_2nd_argument H8 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H8. 
-  (*movs*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H9 j. apply (no_halt_sec m p j). rewrite Heqj. intro. discriminate. apply H9.
-  (*movi*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H6 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H6.
-  (*cmp*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H6 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H6.
-  (*add*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H9 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H9.
-  (*sub*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H9 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H9.
-  (*call*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H9 j. apply (no_halt_sec m p j). rewrite Heqj. intro. discriminate. apply H9.
-  (*ret*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_sec m p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*je true*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*je false*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*jl true*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*jl false*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*jmp*)
-  exists (x := Tau). apply los_eval_int with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H6 j. apply (no_halt_sec m' p j). rewrite Heqj. intro. discriminate. apply H6.
+inversion H0; try(same_domain_step_correspond_semantic).
   (*halt*) 
-  exists (x := Tick); apply los_eval_int_halt with (p' := p') (r' := r') (f' := f'). subst; apply H0. apply H4.
+  exists (x := Tick). apply los_eval_int_halt with (p' := 0) (r' := r') (f' := f'). subst; apply H0. auto. 
  (* cases of external jumps *)
-inversion H0.
-  (*movl*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0.
-   grab_2nd_argument H8 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H8. 
-  (*movs*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_ext me p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*movi*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H6 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H6.
-  (*cmp*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H6 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H6.
-  (*add*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H9 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H9.
-  (*sub*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H9 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H9.
-  (*call*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H9 j. apply (no_halt_ext me p j). rewrite Heqj. intro. discriminate. apply H9.
-  (*ret*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_ext me p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*je true*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*je false*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*jl true*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*jl false*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H8 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H8.
-  (*jmp*)
-  exists (x := Tau). apply los_eval_ext with (p' := p') (r' := r') (f' := f'). subst; apply H0. 
-   grab_2nd_argument H6 j. apply (no_halt_ext me' p j). rewrite Heqj. intro. discriminate. apply H6.
+inversion H0; try(same_domain_step_correspond_semantic).
    (*halt*)
-   exists (x := Tick). apply los_eval_ext_halt with (p' := p') (r' := r') (f' := f'). subst. apply H0. apply H4.
+   exists (x := Tick). apply los_eval_ext_halt with (p' := 0) (r' := r') (f' := f'). subst. apply H0. auto.
 Qed.
 
 
