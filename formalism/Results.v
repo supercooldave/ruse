@@ -17,29 +17,11 @@ Require Import MyTactics.
 ==============================================*)
 
 
-Lemma trace_in_los_implies_trace_in_trsem :
-  forall (p p' : Address) (r r' : RegisterFile) (f f' : Flags) (ctx ctx' : MemExt) (c c' : MemSec) (l : list Label),
-    (p, r, f, plug ctx c) =~= l =~=>> (p', r', f', plug ctx' c') ->
-    (
-      (protected p -> protected p' -> Sta (p, r, f, c) == l ==>> Sta (p', r', f', c')) \/
-      (protected p -> unprotected p' -> Sta (p, r, f, c) == l ==>> Unk c' ) \/
-      (unprotected p -> protected p' -> Unk c == l ==>> Sta (p', r', f', c')) \/
-      (unprotected p -> unprotected p' -> Unk c == l ==>> Unk c')
-    ).
-Proof.
-intros p p' r r' f f' ct ct' c c' l H.
-inversion H.
-subst; apply or_introl; intros; assert (Hr : c = c' ) by (apply (plug_same_memory ct ct' c' c); auto); rewrite Hr; apply trace_refl.
-subst; apply or_introl; intros. admit.
-subst.
-inversion H1. 
-apply or_intror. apply or_intror. apply or_introl. intros.
-apply trace_trans with (t' := Sta (p'0, r'', f,c )).
-discriminate.
-apply tr_call. inversion H9; auto. subst. admit.
-apply or_intror ; apply or_introl; intros. apply trace_trans with ( Unk c). 
-discriminate. apply tr_return with SP.
-admit. admit. 
+
+
+
+
+
 
 
 (*==============================================

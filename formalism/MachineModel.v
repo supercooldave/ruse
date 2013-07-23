@@ -299,6 +299,8 @@ assert (no_entrypoints * entrypoint_size < code_size) by (apply non_overflow_ent
 admit.
 Admitted.
 
+
+
 (*
 Dave's proof. 
 Reaches the same state but with more passes.
@@ -353,6 +355,3 @@ Axiom plug_same_memory :
 
 
 Parameter get_trace_state : State -> TraceState.
-
-
-
